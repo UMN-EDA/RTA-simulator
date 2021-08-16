@@ -1,6 +1,0 @@
-argparse
-numpy
-tqdm
-python-gdsii
-matplotlib
-scipy
