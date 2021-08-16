@@ -45,23 +45,31 @@ python3 src/ThermalAnalyzer.py --help
 #### TL;DR example run commands
 The software is made available with three inbuilt emmisivity pattern generators that reperesent three testcases from Fig. 10 [this][1] research article. 
 
-The following sequence of commands runs the software on the superposition test pattern from Fig. 10 of this work as an example. 
-
-The first command simulates RTA process on testcase 3 with a region size of 500um, for a maximum time duration of 2ms, with step size 0.1ms, a pulse width of 1ms, and stores the generated output in results/test in the form of a .NPZ file. The second command visualizes the thermal profiles across the length and width of the die at the 1ms point of time.
+The following sequence of commands runs the thermal analysis software on the superposition test pattern from Fig. 10 of this work as an example. 
 
 ```
 python3 src/ThermalAnalyzer.py -d simulate -t 3 -r 500 -tm 2e-3 -ts 1e-4 -tp 1e-3 -o results/test
 python3 src/ThermalAnalyzer.py visualize -t 1e-3 -lvw -s results/test/temperature_solution.npz
 ```
 
-For a custom GDS file use the following command sequence will preprocess the GDS, visualize the emmisivity patterns, run thermal analysis, and visualize the output thermal profile. The first command process the GDS to generate a .NPZ file. The second command reads the .NPZ file and plots it for ciulalization purposes at a 1um resolution. The third command simulates the RTA process to using the generated emmsivity pattern from teh GDS, at a regino size of 500um, for a duration of 2ms in step size of 0.1ms, annealing time of 1ms and stores the generated results in the form of images in the output results/test directory. 
+Command description:
+1. The first command simulates RTA process on testcase 3 (superposition) with a region size of 500um, for a maximum time duration of 2ms, with step size 0.1ms, a pulse width of 1ms, and stores the generated output in results/test in the form of a .NPZ file. 
+2. The second command visualizes the thermal profiles across the length and width of the die at the 1ms point of time.
+
+The following sequence of commands runs the thermal analysis software on testcases specified as GDS. 
 
 ```
 python3 src/ThermalAnalyzer.py preprocessGDS -g input_data/TCAD_RTP_A.gds -o results/test/
 python3 src/ThermalAnalyzer.py visualize -e results/test/TCAD_RTP_A.npz  -r 1
 python3 src/ThermalAnalyzer.py simulate -g results/test/TCAD_RTP_A.npz -r 500 -tm 2e-3 -ts 1e-4 -tp 1e-3 -o results/test/
-python3 src/ThermalAnalyzer.py visualize -lvw
+python3 src/ThermalAnalyzer.py visualize -t 1e-3 -lvw -s results/test/temperature_solution.npz
 ```
+
+1. The first command process the GDS to generate a .NPZ file. 
+2. The second command reads the .NPZ file and plots it for ciulalization purposes at a 1um resolution. 
+3. The third command simulates the RTA process to using the generated emmsivity pattern from teh GDS, at a regino size of 500um, for a duration of 2ms in step size of 0.1ms, annealing time of 1ms and stores the generated results in the form of images in the output results/test directory.
+4. The second command visualizes the thermal profiles across the length and width of the die at the 1ms point of time.
+
 
 ### Detailed informnation on arguments and usage
 Details on the argument this tool supports:
