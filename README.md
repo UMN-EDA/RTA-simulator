@@ -89,10 +89,7 @@ usage: ThermalAnalyzer [-h] [-v | -q | -d] [-l LOG] [-p SOLVERPARAMS]
 |  -q, --quiet            | No information, warning messages displayed.          |
 | -d, --debug             | Displays additional debug messages for software debug.|
 | -l LOG, --log_file LOG  | Log file for run.                   	                  |
-| -p SOLVERPARAMS,        | JSON file containing necessary definition to run the tool. |
-| --solver_params SOLVERPARAMS |  |
-
-
+| -p SOLVERPARAMS,        | JSON file containing necessary definition to run the tool. By default loads RTA-simulator/config/SolverParams.json |
 
 This software runs in three different modes of operation as summarized below:
 
@@ -158,6 +155,7 @@ usage: ThermalAnalyzer visualize [-h] [-e NPZFILE] [-r R] [-o OUTDIR]
 | -lvt, --lenVtime                      | Plot length vs. time along the center of the die |
 | -lvh, --lenVheight                    | Plot length vs. height for the provided time point along the center of the die |
 | -s SOLFILE, --solution SOLFILE        | Path to the generated solution file from simulation |
+|-k, --enable_t_k_scaling               | Enable temperature based scaling of thermal conductivity of silicon. By default is disabled |
 
 
 [1]: https://iopscience.iop.org/article/10.1149/1.2911486/meta?casa_token=dj3PKG6YzRcAAAAA:CPAa45eOZ4541aEvu9fS7YeMuHEDhU8Fu8qyedCaq0lutUXtlN12K8qmC_GnxTZ2S2trhaYx
