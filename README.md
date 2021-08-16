@@ -12,8 +12,8 @@ for a short period to perform dopant activation, and is an important process
 step. It is critically important to ensure that annealing occurs uniformly across
 the entire die. This repository contains software to perform thermal analysis to determine the temperature profile of a die under RTA, considering radiation and conduction effects. The software solves builds and solves a second order partial differential equation to generate the on-die temperature profile.
 
-<img align = "left" width="30%" src="lamp-and-die.png">
-<img align = "right" width="30%" src="example-thermal-profile.png">
+<img align = "left" width="50%" src="lamp-and-die.png">
+<img align = "right" width="50%" src="example-thermal-profile.png">
 
 ## Tutorial
 
