@@ -30,17 +30,28 @@ from tqdm import tqdm, trange
 from pathlib import Path
 import logging
 from time import time
+import json
 
 #Class for reading GDS to convert into the NPZ files
 class GDSLoader():
-  def __init__(self, region_size):
+  def __init__(self, region_size, solverParamsFile):
     self.createLogger()
     self.region_size_um = region_size
     self.k_si = None
     self.k_siO2 = None
     self.e = None
     self.k = None
-    
+    self.defineParameters(solverParamsFile)
+
+  def defineParameters(self, solverParamsFile):
+    with solverParamsFile.open('r') as f:
+      solver_params = json.load(f)
+    self.si_k = solver_params['si_k'] 
+    self.sio2_k = solver_params['sio2_k'] 
+    self.r_sd = solver_params['r_sd'] 
+    self.r_ti = solver_params['r_ti'] 
+    self.r_gate = solver_params['r_gate'] 
+
   def createLogger(self):
     self.logger = logging.getLogger('TAZ.GDS')
 
@@ -69,14 +80,14 @@ class GDSLoader():
     emm_full = np.zeros_like(RTA_array,dtype=float)
     k_si_full = np.zeros_like(RTA_array,dtype=float)
     k_sio2_full = np.zeros_like(RTA_array,dtype=float)
-    self.logger.debug(emm_full.shape)
-    emm_full[RTA_array==0] = 0.80
-    emm_full[RTA_array==1] = 0.43
-    emm_full[RTA_array==2] = 0.55
+    self.logger.debug("Emissivity map shape %s"%(emm_full.shape,))
+    emm_full[RTA_array==0] = (1-self.r_ti)
+    emm_full[RTA_array==1] = (1-self.r_sd)
+    emm_full[RTA_array==2] = (1-self.r_gate)
     
-    k_sio2_full[RTA_array==0] = 1.4
-    k_si_full[RTA_array==1] = 148
-    k_si_full[RTA_array==2] = 148
+    k_sio2_full[RTA_array==0] = self.sio2_k
+    k_si_full[RTA_array==1] = self.si_k
+    k_si_full[RTA_array==2] = self.si_k
 
     self.logger.debug("Aggregating info")
     emissivity_array = np.sum(emm_full.reshape(nx, region_size, 

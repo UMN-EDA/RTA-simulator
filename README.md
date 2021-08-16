@@ -49,7 +49,7 @@ The software is made available with three inbuilt emmisivity pattern generators 
 The following sequence of commands runs the thermal analysis software on the superposition test pattern from Fig. 10 of this work as an example. 
 
 ```
-python3 src/ThermalAnalyzer.py -d simulate -t 3 -r 500 -tm 2e-3 -ts 1e-4 -tp 1e-3 -o results/test
+python3 src/ThermalAnalyzer.py -v simulate -t 3 -r 500 -tm 2e-3 -ts 1e-4 -tp 1e-3 -o results/test
 python3 src/ThermalAnalyzer.py visualize -t 1e-3 -lvw -s results/test/temperature_solution.npz
 ```
 
@@ -78,7 +78,10 @@ Details on the argument this tool supports:
 ```
 python3 src/ThermalAnalyzer.py --help
 ```
-
+```
+usage: ThermalAnalyzer [-h] [-v | -q | -d] [-l LOG] [-p SOLVERPARAMS]
+                       {simulate,visualize,preprocessGDS} ...
+```
 | Argument              	| Comments                                              |
 |-----------------------	|-------------------------------------------------------|
 | -h, --help            	| Show this help message and exit.                      |
@@ -86,6 +89,8 @@ python3 src/ThermalAnalyzer.py --help
 |  -q, --quiet            | No information, warning messages displayed.          |
 | -d, --debug             | Displays additional debug messages for software debug.|
 | -l LOG, --log_file LOG  | Log file for run.                   	                  |
+| -p SOLVERPARAMS,        | JSON file containing necessary definition to run the tool. |
+| --solver_params SOLVERPARAMS |  |
 
 
 
@@ -117,7 +122,7 @@ solve for the thermal profile.
 
 ```
 usage: ThermalAnalyzer simulate [-h] (-g NPZFILE | -t {1,2,3}) -r R -tm T_MAX
-                                -ts T_STEP -tp PW_LAMP [-o OUTDIR]
+                                -ts T_STEP -tp PW_LAMP [-o OUTDIR] [-k]
 ```
 
 | Argument              	              | Comments                                         |
@@ -130,6 +135,7 @@ usage: ThermalAnalyzer simulate [-h] (-g NPZFILE | -t {1,2,3}) -r R -tm T_MAX
 | -ts T_STEP, --time_step T_STEP        | Time step resolution for the simulation          |
 | -tp PW_LAMP, --time_pulse PW_LAMP     | Time duration of the lamp pulse for the simulation| 
 | -o OUTDIR, --outDir OUTDIR            | Destination directory for output solution files. |
+| -k, --enable_t_k_scaling              | Enable temperature based conductivity scaling. |
 
 
 #### Visualize mode

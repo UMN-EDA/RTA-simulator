@@ -53,6 +53,7 @@ class ThermalAnalyzer:
 
   
   def PreprocessGdsOptions(self):
+    
     if self.args.jsonFile is not None:
       self.modeJsonPreprocess()
     elif self.args.gdsFile is not None:
@@ -65,7 +66,12 @@ class ThermalAnalyzer:
       if self.args.R is None:
         self.parserVisualize.error("--resolution is a required argument with --emissivity")
         return 
-      self.visualizer.visualizeEmmissivity(self.args.npzFile, self.args.R)
+      if not self.args.solverParams.is_file():
+        self.logger.error('''Solver Params file %s does not exist, Please define
+        it for creating emissivity maps'''%self.args.solverParams)
+        return
+      self.logger.info("Reading definition file %s"%self.args.solverParams)
+      self.visualizer.visualizeEmmissivity(self.args.npzFile, self.args.R, self.args.solverParams)
     if (self.args.lvt is not False or 
         self.args.lvh is not False or
         self.args.lvw is not False ):
@@ -91,10 +97,18 @@ class ThermalAnalyzer:
     self.logger.debug("t_max %e"%self.args.t_max)
     self.logger.debug("t_step %e"%self.args.t_step)
     self.logger.debug("pw_lamp %e"%self.args.pw_lamp)
+    if self.args.solverParams.is_file():
+      self.logger.info("Reading definition file %s"%self.args.solverParams)
+      self.simulator.defineParameters(self.args.solverParams)
+    else:
+      self.logger.error('''Solver Params file %s does not exist. Please define
+      it to run the simulator'''%self.args.solverParams)
+      return
     if self.args.npzFile is not None:
       self.simulator.build(self.args.npzFile, self.args.R, self.args.outDir)  
     elif self.args.test is not None:
       self.simulator.buildTest(self.args.test, self.args.R, self.args.outDir)  
+    self.simulator.enableKsiScaling(self.args.ksiScaling)
     self.simulator.runSolver(self.args.t_max, self.args.t_step, self.args.pw_lamp)
       
   def modeJsonPreprocess(self):
@@ -158,6 +172,13 @@ class ThermalAnalyzer:
     parser.add_argument("-l", "--log_file", type=Path,
               help = "Log file for run.",dest='log')
     parser.set_defaults(func=lambda : parser.print_help())                        
+    source_dir = Path(__file__).resolve().parent.parent
+    config_file = source_dir / 'config/SolverParams.json'
+    parser.add_argument("-p",'--solver_params', type=Path,
+                              dest='solverParams', default=config_file,
+                              help = ''' JSON file containing necessary
+                              definition to run the tool. By default loads
+                              %s'''%config_file)
     subparsers = parser.add_subparsers(
               title = "ThermalAnalyzer subcommands and analysis modes.",
               description="List of available modes for %(prog)s", 
@@ -190,7 +211,11 @@ class ThermalAnalyzer:
                               help = ''' Destination directory for output
                               solution files. The command will create the directory
                               if it does not exists''')
-
+    parserSim.add_argument("-k",'--enable_t_k_scaling', action='store_true',
+                              dest='ksiScaling', default=False,
+                              help = ''' Enable temperature based scaling of
+                              thermal conductivity of silicon. By default is
+                              disabled''')
     #### Visualize options
     parserVisualize = subparsers.add_parser("visualize", 
               description="GDS visualization",

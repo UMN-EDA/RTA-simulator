@@ -39,8 +39,8 @@ class Visualizer():
   def createLogger(self):
     self.logger = logging.getLogger('TAZ.VIS')
 
-  def visualizeEmmissivity(self,npzFile,regionSize):
-    gds = GDSLoader(regionSize)
+  def visualizeEmmissivity(self,npzFile,regionSize, solverParamsFile):
+    gds = GDSLoader(regionSize, solverParamsFile)
     st = time()
     self.logger.log(25,"Creating emissivity map from GDS NPZ")
     gds.createEmmissivityMatrix(npzFile)
