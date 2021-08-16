@@ -43,7 +43,7 @@ Check if installation is successful with the following command:
 python3 src/ThermalAnalyzer.py --help
 ```
 
-#### TL;DR example run commands
+### TL;DR. Quick example run commands
 The software is made available with three inbuilt emmisivity pattern generators that reperesent three testcases from Fig. 10 [this][1] research article. 
 
 The following sequence of commands runs the thermal analysis software on the superposition test pattern from Fig. 10 of this work as an example. 
@@ -71,7 +71,7 @@ python3 src/ThermalAnalyzer.py visualize -t 1e-3 -lvw -s results/test/temperatur
 3. The third command simulates the RTA process to using the generated emissivity pattern from the GDS, at a region size of 500um, for a duration of 2ms in step size of 0.1ms, annealing time of 1ms, and stores the generated results in the form of images in the output results/test directory.
 4. The second command visualizes the thermal profiles across the length and width of the die at the 1ms point of time.
 
-
+For details on information on the arguments refer the next section. 
 
 ### Detailed information on arguments and usage
 Details on the argument this tool supports:
@@ -141,34 +141,17 @@ usage: ThermalAnalyzer visualize [-h] [-e NPZFILE] [-r R] [-o OUTDIR]
                                  [-t T_POINT] [-lvw] [-lvt] [-lvh]
                                  [-s SOLFILE]
 ```
+| Argument              	              | Comments                                         |
+|---------------------------------------|--------------------------------------------------|
+| -h, --help            	              | Show this help message and exit.                 |
+| -o OUTDIR, --outDir OUTDIR            | Destination directory for output solution files. |
+| -e NPZFILE, --emissivity NPZFILE      | Path to the preprocessed NPZ file for emissivity plot |
+| -r R, --resolution R                  | Resolution in um (int) for emissivity plot       |
+| -t T_POINT, --time_point T_POINT      | Time point at which to plot the result           |
+| -lvw, --lenVwidth                     | Plot length vs. width for the provided time point|
+| -lvt, --lenVtime                      | Plot length vs. time along the center of the die |
+| -lvh, --lenVheight                    | Plot length vs. height for the provided time point along the center of the die |
+| -s SOLFILE, --solution SOLFILE        | Path to the generated solution file from simulation |
 
-
-GDS visualization
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -o OUTDIR, --outDir OUTDIR
-                        Destination directory to store the figure. The command
-                        will create the directory if it does not exist
-
-Emissivity:
-  Necessary arguments to generate emissivity plots.
-
-  -e NPZFILE, --emissivity NPZFILE
-                        Path to the preprocessed NPZ file for emissivity plot
-  -r R, --resolution R  Resolution in um (int) for emissivity plot
-
-Temperature plots:
-  Necessary arguments to generate temperature plots
-
-  -t T_POINT, --time_point T_POINT
-                        Time point at which to plot the result
-  -lvw, --lenVwidth     Plot length vs. width for the provided time point
-  -lvt, --lenVtime      Plot length vs. time along the center of the
-                        die
-  -lvh, --lenVheight    Plot length vs. height for the provided time point
-                        along the center of the die
-  -s SOLFILE, --solution SOLFILE
-                        Path to the generated solution file from simulate
 
 [1]: https://iopscience.iop.org/article/10.1149/1.2911486/meta?casa_token=dj3PKG6YzRcAAAAA:CPAa45eOZ4541aEvu9fS7YeMuHEDhU8Fu8qyedCaq0lutUXtlN12K8qmC_GnxTZ2S2trhaYx
