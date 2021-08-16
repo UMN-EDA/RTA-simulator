@@ -10,7 +10,7 @@ Thermal analysis to measure on-die temperature during rapid thermal annealing (R
 Rapid thermal annealing (RTA) involves the application of high temperature
 for a short period to perform dopant activation, and is an important process
 step. It is critically important to ensure that annealing occurs uniformly across
-the entire die. This repository contains software to perform thermal analysis to determine the temperature profile of a die under RTA, considering radiation and conduction effects. The software solves builds and solves a second order partial differential equation to generate the on-die temperature profile.
+the entire die. This repository contains software to perform thermal analysis to determine the temperature profile of a die under RTA, considering radiation and conduction effects. The software builds and solves a second-order partial differential equation to generate the on-die temperature profile.
 
 <img align = "right" width="35%" src="misc/lamp-and-die.png">
 <img align = "right" width="35%" src="misc/example-thermal-profile.png">
@@ -21,15 +21,16 @@ the entire die. This repository contains software to perform thermal analysis to
 + python 3.6.3
 + pip 21.2.3
 
-### Download and install on machine
-Clone the repository using the following commands and change directory to RTA-simulator home directory:
+### Download and install on a machine
+Clone the repository using the following commands and change the directory to RTA-simulator home directory:
 
 ```
 git clone https://github.com/UMN-EDA/RTA-simulator.git
 cd RTA-simulator
 ```
 
-To install RTA-simulator create a virtual environment, activate it, and install the python pacakges needed using the following commands (working interent connection is needed to download and install the python pacakges listed in the requirements.txt file):
+To install RTA-simulator, create and activate a virtual environment, and install the python packages needed using the following commands:
+Note that a working internet connection is needed to download and install the python packages listed in the requirements.txt file:
 
 ```
 python3 venv -m UMN-RTA
@@ -66,35 +67,108 @@ python3 src/ThermalAnalyzer.py visualize -t 1e-3 -lvw -s results/test/temperatur
 ```
 
 1. The first command process the GDS to generate a .NPZ file. 
-2. The second command reads the .NPZ file and plots it for ciulalization purposes at a 1um resolution. 
-3. The third command simulates the RTA process to using the generated emmsivity pattern from teh GDS, at a regino size of 500um, for a duration of 2ms in step size of 0.1ms, annealing time of 1ms and stores the generated results in the form of images in the output results/test directory.
+2. The second command reads the .NPZ file and plots it for visualization purposes at a 1um resolution. 
+3. The third command simulates the RTA process to using the generated emissivity pattern from the GDS, at a region size of 500um, for a duration of 2ms in step size of 0.1ms, annealing time of 1ms, and stores the generated results in the form of images in the output results/test directory.
 4. The second command visualizes the thermal profiles across the length and width of the die at the 1ms point of time.
 
 
-### Detailed informnation on arguments and usage
+
+### Detailed information on arguments and usage
 Details on the argument this tool supports:
 ```
 python3 src/ThermalAnalyzer.py --help
 ```
 
+| Argument              	| Comments                                              |
+|-----------------------	|-------------------------------------------------------|
+| -h, --help            	| Show this help message and exit.                      |
+| -v, --verbose         	| Enables verbose mode with detailed information.       |
+|  -q, --quiet            | No information, warning messages displayed.          |
+| -d, --debug             | Displays additional debug messages for software debug.|
+| -l LOG, --log_file LOG  | Log file for run.                   	                  |
+
+
 
 This software runs in three different modes of operation as summarized below:
 
-1. preprocessGDS:  Preprocess the GDSII/JSON file to a preprocessed NPZ  file that can be used by the other subcommands
+1. preprocessGDS:  Preprocess the GDSII/JSON file to a preprocessed NPZ  file that the other subcommands can use
 2. simulate:    Setup the tool in thermal simulation mode to run analysis on the provided GDS.
 3. visualize:  Set of suboptions available for visualizing the inputs/outputs
 
 For additional information of each mode run `python3 src/ThermalAnalyzer.py <mode> --help`
 
+#### PreprocessGDS mode
+The preprocessGDS mode is to read a GDS file and generate a parsed emissivity matrix that is stored in the .npz file.
+
+```
+Usage: ThermalAnalyzer preprocessGDS [-h] (-j JSONFILE | -g GDSFILE) -o OUTDIR
+```
 
 | Argument              	| Comments                                              |
 |-----------------------	|-------------------------------------------------------|
-| -h, --help            	| Show this help message and exit                       |
-| -v, --verbose         	| Enables verbose mode with detailed information.       |
-|  -q, --quiet              | NMOS or PMOS device type (required, str)              |
-| -d, --debug             	| Displays additional debug messages for software debug.|
-| -l LOG, --log_file LOG    |  Log file for run                   	                |
+| -h, --help            	| Show this help message and exit.                      |
+| -g, GDSFILE (required)	| Load GDS information from a GDSII file.               |
+| -o OUTDIR (required)    | Destination directory for output NPZ files.           |
 
 
+#### Simulate mode
+Thermal simulation mode builds and solves the partial differential equation to
+solve for the thermal profile. 
 
-[1]: https://iopscience.iop.org/article/10.1149/1.2911486/meta?casa_token=dj3PKG6YzRcAAAAA:CPAa45eOZ4541aEvu9fS7YeMuHEDhU8Fu8qyedCaq0lutUXtlN12K8qmC_GnxTZ2S2trhaYxPMQ "Physical Modeling of Layout-Dependent Transistor Performance"
+```
+usage: ThermalAnalyzer simulate [-h] (-g NPZFILE | -t {1,2,3}) -r R -tm T_MAX
+                                -ts T_STEP -tp PW_LAMP [-o OUTDIR]
+```
+
+| Argument              	              | Comments                                         |
+|---------------------------------------|--------------------------------------------------|
+| -h, --help            	              | Show this help message and exit.                 |
+| -g NPZFILE, --preprocessedGDS NPZFILE | Path to the preprocessed NPZ file for simulation |
+| -t {1,2,3}, --testcase {1,2,3}        | Run predefined testcases                         |
+| -r R, --resolution R                  | FEM element regions size on the surface plot     |
+| -tm T_MAX, --time_max T_MAX           | Maximum time for the simulation                  |
+| -ts T_STEP, --time_step T_STEP        | Time step resolution for the simulation          |
+| -tp PW_LAMP, --time_pulse PW_LAMP     | Time duration of the lamp pulse for the simulation| 
+| -o OUTDIR, --outDir OUTDIR            | Destination directory for output solution files. |
+
+
+#### Visualize mode
+This mode is to plot and visualize the emissivity profile and output temperature
+profiles
+
+```
+usage: ThermalAnalyzer visualize [-h] [-e NPZFILE] [-r R] [-o OUTDIR]
+                                 [-t T_POINT] [-lvw] [-lvt] [-lvh]
+                                 [-s SOLFILE]
+```
+
+
+GDS visualization
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o OUTDIR, --outDir OUTDIR
+                        Destination directory to store the figure. The command
+                        will create the directory if it does not exist
+
+Emissivity:
+  Necessary arguments to generate emissivity plots.
+
+  -e NPZFILE, --emissivity NPZFILE
+                        Path to the preprocessed NPZ file for emissivity plot
+  -r R, --resolution R  Resolution in um (int) for emissivity plot
+
+Temperature plots:
+  Necessary arguments to generate temperature plots
+
+  -t T_POINT, --time_point T_POINT
+                        Time point at which to plot the result
+  -lvw, --lenVwidth     Plot length vs. width for the provided time point
+  -lvt, --lenVtime      Plot length vs. time along the center of the
+                        die
+  -lvh, --lenVheight    Plot length vs. height for the provided time point
+                        along the center of the die
+  -s SOLFILE, --solution SOLFILE
+                        Path to the generated solution file from simulate
+
+[1]: https://iopscience.iop.org/article/10.1149/1.2911486/meta?casa_token=dj3PKG6YzRcAAAAA:CPAa45eOZ4541aEvu9fS7YeMuHEDhU8Fu8qyedCaq0lutUXtlN12K8qmC_GnxTZ2S2trhaYx
