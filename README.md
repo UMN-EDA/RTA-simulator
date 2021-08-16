@@ -33,7 +33,7 @@ To install RTA-simulator, create and activate a virtual environment, and install
 Note that a working internet connection is needed to download and install the python packages listed in the requirements.txt file:
 
 ```
-python3 venv -m UMN-RTA
+python3 -m venv UMN-RTA
 source UMN-RTA/bin/activate.csh # if bash ./UMN-RTA/bin/activate
 pip3 install -r requirements.txt
 ```
