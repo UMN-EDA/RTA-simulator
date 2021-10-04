@@ -1,3 +1,8 @@
+# input and output files
+gds_npz/
+input_data/
+results/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
