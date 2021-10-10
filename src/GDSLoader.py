@@ -51,6 +51,9 @@ class GDSLoader():
     self.r_sd = solver_params['r_sd'] 
     self.r_ti = solver_params['r_ti'] 
     self.r_gate = solver_params['r_gate'] 
+    self.thickness =solver_params['thickness'] 
+    self.dz = np.array(solver_params['dz'])
+    self.die_size = solver_params['die_size']
 
   def createLogger(self):
     self.logger = logging.getLogger('TAZ.GDS')
@@ -77,31 +80,19 @@ class GDSLoader():
     num_el = (RTA_array.shape[0]*RTA_array.shape[1])/(region_size*region_size)
     ##
     self.logger.debug("Creating emissivity and conductivity maps")
-    emm_full = np.zeros_like(RTA_array,dtype=float)
-    k_si_full = np.zeros_like(RTA_array,dtype=float)
-    k_sio2_full = np.zeros_like(RTA_array,dtype=float)
-    self.logger.debug("Emissivity map shape %s"%(emm_full.shape,))
-    emm_full[RTA_array==0] = (1-self.r_ti)
-    emm_full[RTA_array==1] = (1-self.r_sd)
-    emm_full[RTA_array==2] = (1-self.r_gate)
-    
-    k_sio2_full[RTA_array==0] = self.sio2_k
-    k_si_full[RTA_array==1] = self.si_k
-    k_si_full[RTA_array==2] = self.si_k
-
-    self.logger.debug("Aggregating info")
-    emissivity_array = np.sum(emm_full.reshape(nx, region_size, 
-                                               ny, region_size),
-                              axis=(1,3)
-                             )/(region_size**2)
-    conductivity_array_si = np.sum(k_si_full.reshape(nx, 
-                              region_size, ny, region_size),
-                              axis=(1,3)
-                             )/(region_size**2)
-    conductivity_array_si = np.sum(k_sio2_full.reshape(nx, 
-                              region_size, ny, region_size),
-                              axis=(1,3)
-                             )/(region_size**2)
+    for x in range(nx):
+      cx = region_size*x
+      for y in range(ny):
+        cy = region_size*y
+        region = RTA_array[cx:cx+region_size,cy:cy+region_size]
+        emissivity_array[x,y] = (  np.sum(region==0)*(1-self.r_ti) 
+                                 + np.sum(region==1)*(1-self.r_sd)
+                                 + np.sum(region==2)*(1-self.r_gate)
+                                 )/(region_size**2)
+        conductivity_array_sio2[x,y] =( np.sum(region==0)* self.sio2_k)/(region_size**2)
+        conductivity_array_si[x,y] =( np.sum(region==1)*self.si_k
+                                    + np.sum(region==2)*self.si_k
+                                    )/(region_size**2)
 
     self.logger.debug("Aggregating info complete")
     self.e = emissivity_array
