@@ -125,14 +125,16 @@ usage: ThermalAnalyzer simulate [-h] (-g NPZFILE | -t {1,2,3}) -r R -tm T_MAX
 | Argument              	              | Comments                                         |
 |---------------------------------------|--------------------------------------------------|
 | -h, --help            	              | Show this help message and exit.                 |
-| -g NPZFILE, --preprocessedGDS NPZFILE | Path to the preprocessed NPZ file for simulation |
-| -t {1,2,3}, --testcase {1,2,3}        | Run predefined testcases                         |
-| -r R, --resolution R                  | FEM element regions size on the surface plot     |
-| -tm T_MAX, --time_max T_MAX           | Maximum time for the simulation                  |
-| -ts T_STEP, --time_step T_STEP        | Time step resolution for the simulation          |
-| -tp PW_LAMP, --time_pulse PW_LAMP     | Time duration of the lamp pulse for the simulation| 
+| -g NPZFILE, --preprocessedGDS NPZFILE | Path to the preprocessed NPZ file for simulation. Call multiple times for multiple GDS. |
+| -t {1,2,3}, --testcase {1,2,3}        | Run predefined testcases.                         |
+| -r R, --resolution R                  | FEM element regions size on the surface plot.     |
+| -tm T_MAX, --time_max T_MAX           | Maximum time for the simulation.                  |
+| -ts T_STEP, --time_step T_STEP        | Time step resolution for the simulation.          |
+| -tp PW_LAMP, --time_pulse PW_LAMP     | Time duration of the lamp pulse for the simulation.| 
 | -o OUTDIR, --outDir OUTDIR            | Destination directory for output solution files. |
 | -k, --enable_t_k_scaling              | Enable temperature based conductivity scaling. |
+| -hm, --half_mode                      | When merging multiple GDS chooses to use only half the GDS in width dimension. |
+| -c, --enable_corsening                | Enable coarsening of the emissivity map by merging nodes with similar emissivities. |
 
 
 #### Visualize mode
@@ -155,7 +157,6 @@ usage: ThermalAnalyzer visualize [-h] [-e NPZFILE] [-r R] [-o OUTDIR]
 | -lvt, --lenVtime                      | Plot length vs. time along the center of the die |
 | -lvh, --lenVheight                    | Plot length vs. height for the provided time point along the center of the die |
 | -s SOLFILE, --solution SOLFILE        | Path to the generated solution file from simulation |
-|-k, --enable_t_k_scaling               | Enable temperature based scaling of thermal conductivity of silicon. By default is disabled |
 
 
 [1]: https://iopscience.iop.org/article/10.1149/1.2911486/meta?casa_token=dj3PKG6YzRcAAAAA:CPAa45eOZ4541aEvu9fS7YeMuHEDhU8Fu8qyedCaq0lutUXtlN12K8qmC_GnxTZ2S2trhaYx

@@ -105,9 +105,11 @@ class ThermalAnalyzer:
       it to run the simulator'''%self.args.solverParams)
       return
     if self.args.npzFile is not None:
-      self.simulator.build(self.args.npzFile, self.args.R, self.args.outDir)  
+      self.simulator.build(self.args.npzFile, self.args.R, self.args.outDir, 
+                           self.args.halfMode, self.args.discretization)  
     elif self.args.test is not None:
-      self.simulator.buildTest(self.args.test, self.args.R, self.args.outDir)  
+      self.simulator.buildTest(self.args.test, self.args.R, self.args.outDir,
+                               self.args.discretization)  
     self.simulator.enableKsiScaling(self.args.ksiScaling)
     self.simulator.runSolver(self.args.t_max, self.args.t_step, self.args.pw_lamp)
       
@@ -194,8 +196,10 @@ class ThermalAnalyzer:
               ''')
     group_sim = parserSim.add_mutually_exclusive_group(required=True)
     group_sim.add_argument("-g","--preprocessedGDS", type=Path, dest='npzFile',
-                              help = '''Path to the preprocessed NPZ file for
-                                        simulation ''')
+                           action = 'append', help = '''Path to the preprocessed
+                              NPZ file for simulation. Input each file with a
+                              separate -g option''')
+
     group_sim.add_argument("-t","--testcase",type=int,dest='test',
                             choices=[1,2,3], help =''' Run predefined
                             testcases''')
@@ -214,8 +218,17 @@ class ThermalAnalyzer:
     parserSim.add_argument("-k",'--enable_t_k_scaling', action='store_true',
                               dest='ksiScaling', default=False,
                               help = ''' Enable temperature based scaling of
-                              thermal conductivity of silicon. By default is
+                              thermal conductivity of silicon. By default, this is
                               disabled''')
+    parserSim.add_argument("-c",'--enable_coarsening', action='store_true',
+                              dest='discretization', default=False,
+                              help = ''' Enable coarsening of emissivity map to
+                              speed up thermal simmulation. By default, this is
+                              disabled''')
+    parserSim.add_argument("-hm","--half_mode", default=False,
+                            action="store_true", dest='halfMode',                          
+                            help = ''' Process GDS in half mode where only the
+                            first half of the GDS (width wise) is used ''')
     #### Visualize options
     parserVisualize = subparsers.add_parser("visualize", 
               description="GDS visualization",

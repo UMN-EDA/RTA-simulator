@@ -71,7 +71,7 @@ class Visualizer():
       outDir.mkdir(parents=True, exist_ok=True)
     self.outDir=outDir
 
-  def visualizeLvW(self,t_point):
+  def visualizeLvW(self,t_point=None):
     if t_point is None:
       t_point = self.t_lamp
     t_step = self.t_eval[1] - self.t_eval[0]

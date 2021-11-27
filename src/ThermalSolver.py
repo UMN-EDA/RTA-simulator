@@ -33,11 +33,13 @@ from matplotlib import pyplot as plt
 from time import time
 from scipy.integrate import solve_ivp
 import json
+from DiscretizeGrid import DiscretizeGrid
 
 class ThermalSolver:
   def __init__(self):
     self.createLogger()
     self.ksiScaling = False
+    self.grid = DiscretizeGrid()
 
   def createLogger(self):
     self.logger = logging.getLogger('TAZ.SOL')
@@ -65,41 +67,25 @@ class ThermalSolver:
     self.r_sd = solver_params['r_sd'] 
     self.r_ti = solver_params['r_ti'] 
     self.r_gate = solver_params['r_gate'] 
+    self.nz = self.dz.shape[0]
 
-  def setParameters(self):
-    nz = self.dz.shape[0]
-    e = np.repeat(self.e[:,:,np.newaxis],nz,axis=2)
-    e[:,:,1:] = 0
-    k_si = np.repeat(self.k_si[:,:,np.newaxis],nz,axis=2)
-    k_si[:,:,self.die_size:] = self.si_k
-    k_sio2 = np.repeat(self.k_sio2[:,:,np.newaxis],nz,axis=2)
-    k_sio2[:,:,self.die_size:] = 0
-    self.k_si = k_si
-    self.e = e
-    self.k_sio2 = k_sio2
-
-    self.width = self.e.shape[0]*self.region_size*1e-6
-    self.length = self.e.shape[1]*self.region_size*1e-6
-    self.dx = self.region_size*1e-6 # x dimension
-    self.dy = self.region_size*1e-6 # y dimension
-
-  def build(self, npzFile, regionSize, outDir):
+  def build(self, npzFile, regionSize, outDir, halfMode=False,
+            enableDiscretization=False):
     self.region_size = regionSize
     if outDir is not None:
       outDir.mkdir(parents=True, exist_ok=True)
     self.outDir=outDir
     st = time()
-    self.gds = GDSLoader(regionSize, self.solverParamsFile)
     self.logger.log(25,"Creating emissivity map from GDS NPZ")
-    self.gds.createEmmissivityMatrix(npzFile)
-    self.e = self.gds.e
-    self.k_si = self.gds.k_si
-    self.k_sio2 = self.gds.k_sio2
-    #self.defineParameters()
-    self.setParameters()
+    self.gds = self.grid.getEmmissivityMap( npzFile, regionSize,
+                                    self.solverParamsFile, halfMode)
+    self.width = self.gds.e.shape[0]*self.region_size*1e-6
+    self.length = self.gds.e.shape[1]*self.region_size*1e-6
+
+    self.grid.createNodes(self.gds, enableDiscretization)                                
     self.logger.log(25,"Created emissivity map in %5.2fs"%(time()-st))
 
-  def buildTest(self, patternNum, regionSize, outDir):
+  def buildTest(self, patternNum, regionSize, outDir, enableDiscretization=False):
     self.region_size = regionSize
     st = time()
     if outDir is not None:
@@ -107,141 +93,133 @@ class ThermalSolver:
     self.outDir=outDir
     self.logger.debug("Enabling pattern %d"%patternNum)
     patternMask = self.testcasePatterns(patternNum-1)
-    #self.logger.debug(patternMask)
-    #self.defineParameters()
-    self.setTestcaseParameters(patternMask)
-    self.setParameters()
-      
+    self.setTestcaseParameters(patternMask, self.region_size, self.solverParamsFile)
+    self.width = self.gds.e.shape[0]*self.region_size*1e-6
+    self.length = self.gds.e.shape[1]*self.region_size*1e-6
+    self.grid.createNodes(self.gds, enableDiscretization)                                
     
   def runSolver(self, t_max, time_step, pw_lamp):
     self.t_lamp = pw_lamp
     self.t_step = time_step  # 0.1
     self.t_eval = np.arange(0,t_max,time_step)
-    #self.logger.debug("t eval")
-    #self.logger.debug(self.t_eval)
-    nx,ny,nz = self.e.shape
-    #gx, gy = np.mgrid[0:width:(nx*1j),0:length:(ny*1j)] #0.5 # emisivity
-    T_init = self.T_bound*np.ones_like(self.e).reshape(-1)
+    T_init = self.T_bound*np.ones((self.grid.num_nodes,))
     t1 = time()
     self.pbar = tqdm(total=t_max,position=0,leave=True,
       bar_format = "{desc}: {percentage:.1f}%|{bar}| {n:.1e}/{total:.1e} [{elapsed}<{remaining}, {rate_fmt}{postfix}]")
     self.t_last = 0
+    self.tot_time = 0
+    self.qt_time = 0
+    self.kt_time = 0
+    self.calc_time = 0
+    self.kt_count=0
     sol = solve_ivp(self.differential, 
                     [0, t_max], 
                     T_init, 
                     t_eval=self.t_eval, 
                     vectorized=True,
-                    method = 'Radau') 
+                    #method = 'Radau') 
+                    method = 'BDF') 
     temp = sol.y.T
-    self.temp = temp.reshape(temp.shape[0], nx, ny, nz )
+
+    node_num = 0
+    temp_map = np.zeros((temp.shape[0], self.grid.nx, self.grid.ny, self.nz))
+    for z, nodes in enumerate(self.grid.nodes):
+      for node in nodes:
+        llx, urx, lly, ury = node.llx, node.urx, node.lly, node.ury
+        temp_map[:,llx:urx,lly:ury,z] = temp[:, node_num].reshape(-1,1,1)
+        node_num += 1
+    self.temp = temp_map
 
     self.logger.info("Completed solution in %5.2fs"%(time()-t1))
     self.pbar.close()
     self.saveData()
-    #self.tempPlot()
+
+  def calKT(self, n_points):
+    node_num = 0
+    if n_points==0:
+      dkt_dx2 = np.zeros((self.grid.num_nodes,1))
+    else:
+      dkt_dx2 = np.zeros((self.grid.num_nodes,n_points))
+      
+    self.kt_count+=1
+    for z, nodes in enumerate(self.grid.nodes):
+      for node in nodes:
+        for direction, direction_nodes in enumerate([node.east, node.west, node.north, node.south]): 
+          num_res = len(direction_nodes)
+          for n_node in direction_nodes: 
+            if direction<2:
+              d1 = node.dx 
+              d2 = n_node.dx
+            else:
+              d1 = node.dy 
+              d2 = n_node.dy
+            dd = d1 + d2
+            k_res = dd/(d1/node.conductivity(self.ksiScaling) + d2/n_node.conductivity(self.ksiScaling))
+            dt = n_node.T - node.T
+            dkt_dx2[node_num] += k_res*dt/(dd**2)
+
+        for direction_nodes in [node.top, node.bottom]:
+          if len(direction_nodes) == 0:
+            k_res =(node.dz+self.dz_bound)/(
+                    node.dz/node.conductivity(self.ksiScaling) + 
+                    self.dz_bound/self.k_bound)
+            dz = self.dz_bound + node.dz
+            dt = self.T_bound - node.T
+            dkt_dx2[node_num] += k_res*dt/(dz**2)
+          else:
+            for n_node in direction_nodes: 
+              k_res = (node.dz+n_node.dz)/( node.dz/node.conductivity(self.ksiScaling) +
+                        n_node.dz/n_node.conductivity(self.ksiScaling))
+              dt = n_node.T - node.T
+              dz = node.dz + n_node.dz
+              dkt_dx2[node_num] += k_res*dt/(dz**2)
+        node_num += 1
+    return dkt_dx2
 
   def differential(self,t,T):
+    stot = time()
     tdiff = t-self.t_last
     if tdiff>0:
       self.pbar.update(tdiff)
       self.t_last = t
-    #self.logger.debug(T.shape)
+    # Optimzation statistics
+    #self.pbar.set_postfix({
+    #      'tot': '%5.2f'%self.tot_time,
+    #      'qt': '%5.2f'%self.qt_time,
+    #      'kt': '%5.2f'%self.kt_time,
+    #      'n':'%d'%self.kt_count,
+    #      'calc': '%5.2f'%self.calc_time
+    #  })
+    
     if len(T.shape) == 1:
       n_points = 0
-      T = T.reshape(self.e.shape+(1,))
+      T = T.reshape(-1,1)
     else:
       n_points = T.shape[1]
-      T = T.reshape(self.e.shape+(n_points,))
-
-    area = self.dx * self.dy # 
-    fxn = self.thermalConductivity(T)
-    # scale fxn by 148 as k_si assumes the value to be 148
-    k = self.k_sio2[...,np.newaxis] + (fxn/self.si_k) * self.k_si[...,np.newaxis] 
-    # SiO2 1.4 W/m.K Si 148 W/m.K
-    # i i+1  k1 T1
-    k1 = np.zeros_like(k)
-    T1 = np.zeros_like(T)
-    k1[:-1,:,:,:] = k[1:,:,:,:]
-    T1[:-1,:,:,:] = T[1:,:,:,:]
-    k1[-1,:,:,:] = k[0,:,:,:]
-    T1[-1,:,:,:] = T[0,:,:,:]
-    k1 = 2/(1/k + 1/k1)
-
-    # i i-1  k2 T2 
-    k2 = np.zeros_like(k)
-    T2 = np.zeros_like(T)
-    k2[1:,:,:,:] = k[:-1,:,:,:]
-    T2[1:,:,:,:] = T[:-1,:,:,:]
-    k2[0,:,:,:] = k[-1,:,:,:]
-    T2[0,:,:,:] = T[-1,:,:,:]
-    k2 = 2/(1/k + 1/k2)
-
-    # j j+1  k3 T3
-    k3 = np.zeros_like(k)
-    T3 = np.zeros_like(T)
-    k3[:,:-1,:,:] = k[:,1:,:,:]
-    T3[:,:-1,:,:] = T[:,1:,:,:]
-    k3[:,-1,:,:] = k[:,0,:,:]
-    T3[:,-1,:,:] = T[:,0,:,:]
-    k3 = 2/(1/k + 1/k3)
-
-    # j j-1  k4 T4 
-    k4 = np.zeros_like(k)
-    T4 = np.zeros_like(T)
-    k4[:,1:,:,:] = k[:,:-1,:,:]
-    T4[:,1:,:,:] = T[:,:-1,:,:]
-    k4[:,0,:,:] = k[:,-1,:,:]
-    T4[:,0,:,:] = T[:,-1,:,:]
-    k4 = 2/(1/k + 1/k4)
-
-    # add a section for k k-1
-    # k5, k6, T5, T6
-    # z z+1  k3 T3
-    dz3d = self.dz[np.newaxis,np.newaxis,:,np.newaxis]
-    k5 = np.zeros_like(k)
-    T5 = np.zeros_like(T)
-    dz5 = np.zeros_like(k)
-    k5[:,:,:-1,:] = k[:,:,1:,:]
-    T5[:,:,:-1,:] = T[:,:,1:,:]
-    dz5[:,:,:-1,:]=dz3d[:,:,1:,:]
-    k5[:,:,-1,:] = self.k_bound 
-    T5[:,:,-1,:] = self.T_bound 
-    dz5[:,:,-1,:] = self.dz_bound
-    k5 =(dz3d+dz5)/(dz3d/k + dz5/k5)
-    dz5 = (dz5+dz3d)/2
-
-    # z z-1  k4 T4 
-    k6 = np.zeros_like(k)
-    T6 = np.zeros_like(T)
-    dz6 = np.zeros_like(k)
-    k6[:,:,1:,:] = k[:,:,:-1,:]
-    T6[:,:,1:,:] = T[:,:,:-1,:]
-    dz6[:,:,1:,:]=dz3d[:,:,:-1,:]
-    k6[:,:,0,:] = self.k_bound
-    T6[:,:,0,:] = self.T_bound
-    dz6[:,:,0,:]= self.dz_bound
-    k6 =(dz3d+dz6)/(dz3d/k + dz6/k6)
-    dz6 = (dz6+dz3d)/2
-
-    #self.logger.debug(" all shapes %s %s %s %s %s %s"%(T1.shape, T2.shape, T3.shape, T4.shape, T5.shape,
-    #T6.shape))
-    KT = ( (k1*(T1-T) + k2*(T2-T))/(self.dx*self.dx) 
-         + (k3*(T3-T) + k4*(T4-T))/(self.dy*self.dy)
-         + k5*(T5-T)/(dz5*dz5)
-         + k6*(T6-T)/(dz6*dz6)
-         )
-    #self.logger.debug("KT shape %s"%(KT.shape,))
-
-    q_t = self.sigma * self.e[...,np.newaxis] * area * (self.lampThermalProfile(t)**4 - T**4)
-    #self.logger.debug("qt shape %s"%(q_t.shape,))
-    dTdt_ = (1/(self.cp*self.density)) * ( KT  + q_t/(area*dz3d))
-    #self.logger.debug("dtdt shape %s"%(dTdt_.shape,))
+    sqt = time()
+    node_num = 0
+    q_t = np.zeros_like(T)
+    for z, nodes in enumerate(self.grid.nodes):
+      for node in nodes:
+        node.setTemp(T[node_num,:])
+        q_t[node_num] = ( self.sigma * 
+                          node.e *
+                          (self.lampThermalProfile(t)**4 -node.T**4) / 
+                          (2*node.dz) 
+                        )
+        node_num += 1
+    skt = time()
+    self.qt_time += (skt - sqt)
+    dkt_dx2 = self.calKT(n_points) 
+    scalc = time()
+    self.kt_time += (scalc - skt)
+    dTdt_ = (1/(self.cp*self.density)) * ( dkt_dx2  + q_t)
+    self.calc_time += (time()-scalc)
     if n_points==0:
       dTdt_ = dTdt_.reshape(-1)
     else:
       dTdt_ = dTdt_.reshape(-1,n_points)
-    #self.logger.debug(dTdt_.shape)
-
+    self.tot_time += time()-stot
     return dTdt_
 
   def thermalConductivity(self, T):
@@ -294,7 +272,6 @@ class ThermalSolver:
     ax.set_ylabel("Length (um)")
     ax.set_xlabel("Width (um)")
     fig.colorbar(im)
-    #fig.savefig('%s/T_Len_vs_Width.png'%(out_dir), bbox_inches='tight')
     plt.show()
     plt.close(fig)
 
@@ -321,13 +298,15 @@ class ThermalSolver:
     elif num == 2:
       return mask3
 
-  def setTestcaseParameters(self, mask):
+  def setTestcaseParameters(self, mask, regionSize, solverParamsFile ):
     # masked area is 80% si 20% TI,
     # unmasked area is 60% si 40% TI
+    self.gds = GDSLoader(regionSize, solverParamsFile)
     k_si_mask = (0.8*mask + 0.6*(1-mask)) 
     k_sio2_mask =(0.2*mask + 0.4*(1-mask))
-    self.k_si = self.si_k*k_sio2_mask
-    self.k_sio2 =  self.sio2_k*k_sio2_mask
-    self.e = (1-self.r_sd)*k_si_mask + (1-self.r_ti)*k_sio2_mask
-
+    self.gds.k_si = self.si_k*k_sio2_mask
+    self.gds.k_sio2 =  self.sio2_k*k_sio2_mask
+    self.gds.e = (1-self.r_sd)*k_si_mask + (1-self.r_ti)*k_sio2_mask
+    self.grid.regionSize = regionSize*1e-6
+    self.grid.gds = self.gds
 
