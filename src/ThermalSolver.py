@@ -304,7 +304,7 @@ class ThermalSolver:
     self.gds = GDSLoader(regionSize, solverParamsFile)
     k_si_mask = (0.8*mask + 0.6*(1-mask)) 
     k_sio2_mask =(0.2*mask + 0.4*(1-mask))
-    self.gds.k_si = self.si_k*k_sio2_mask
+    self.gds.k_si = self.si_k*k_si_mask
     self.gds.k_sio2 =  self.sio2_k*k_sio2_mask
     self.gds.e = (1-self.r_sd)*k_si_mask + (1-self.r_ti)*k_sio2_mask
     self.grid.regionSize = regionSize*1e-6
