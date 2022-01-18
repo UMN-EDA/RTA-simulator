@@ -51,9 +51,7 @@ class ThermalSolver:
     self.solverParamsFile = solverParamsFile
     with solverParamsFile.open('r') as f:
       solver_params = json.load(f)
-    self.thickness =solver_params['thickness'] 
     self.dz = np.array(solver_params['dz'])
-    self.die_size = solver_params['die_size'] 
     self.temp_lamp_on = solver_params['temp_lamp_on'] 
     self.temp_lamp_off = solver_params['temp_lamp_off'] 
     self.density = solver_params['density'] 
@@ -131,6 +129,7 @@ class ThermalSolver:
     self.temp = temp_map
 
     self.logger.info("Completed solution in %5.2fs"%(time()-t1))
+    self.logger.info("Maximum temperature reported %5.2fs"%(np.max(self.temp)))
     self.pbar.close()
     self.saveData()
 

@@ -34,8 +34,6 @@ from time import time
 from pathlib import Path
 import json
 from tqdm import tqdm, trange
-from numba import jit, njit
-from numba.experimental import jitclass
 
 from scipy.integrate import solve_ivp
 from scipy.integrate import odeint
@@ -185,7 +183,7 @@ class DiscretizeGrid():
     self.gds = gds
     return gds
 
-  def createDiscretization(self, emmMap):
+  def createDiscretization(self, emmMap, emmDiscretizationThresh):
     emm_map = np.array(emmMap)
 
     merge = np.zeros_like(emm_map)
@@ -198,7 +196,7 @@ class DiscretizeGrid():
     max_val = 0
     for x in range(1,emm_map.shape[0]-1):
       for y in range(1,emm_map.shape[1]-1):
-        if np.all(abs(emm_map[x-1:x+2,y-1:y+2] - emm_map[x,y])<5e-3):
+        if np.all(abs(emm_map[x-1:x+2,y-1:y+2] - emm_map[x,y])<emmDiscretizationThresh):
           merge[x,y] = 1
           max_val = 1
     merge1 = np.array(merge)
@@ -235,7 +233,7 @@ class DiscretizeGrid():
 
   def createNodes(self, gds, enableDiscretization):
     if enableDiscretization:
-      disMap,max_dis = self.createDiscretization(gds.e)
+      disMap,max_dis = self.createDiscretization(gds.e, gds.emm_discretization_thresh)
     else:
       disMap,max_dis = np.zeros_like(gds.e), 0
       
@@ -259,14 +257,18 @@ class DiscretizeGrid():
           if np.all(dis_region >= n) and np.all(node_region == -1): 
             llx, urx = x,x+sz
             lly, ury = y,y+sz
-            k_si = np.mean(gds.k_si[llx:urx,lly:ury])
-            k_sio2 = np.mean(gds.k_sio2[llx:urx,lly:ury])
             for z in range(nz):
               node_nums[z,x:x+sz,y:y+sz] = node_num[z]
               if z == 0:
                 e = np.mean(gds.e[llx:urx,lly:ury])
               else:
                 e = 0
+              if z < gds.die_depth:
+                k_si = np.mean(gds.k_si[llx:urx,lly:ury])
+                k_sio2 = np.mean(gds.k_sio2[llx:urx,lly:ury])
+              else:
+                k_si = gds.si_k
+                k_sio2 = 0 
               node_h = node(node_num[z],llx,urx,lly,ury, 
                             self.regionSize, self.regionSize, gds.dz[z], 
                             k_si, k_sio2, e, gds.si_k, gds.sio2_k)
@@ -309,4 +311,6 @@ class DiscretizeGrid():
         self.e[node_num] = node_h.e
         self.dz[node_num] = node_h.dz
         node_num+=1
+    self.logger.info("Original grid size: %d"%(self.nx*self.ny*self.nz))
+    self.logger.info("Discretized grid size: %d"%(self.num_nodes))
 

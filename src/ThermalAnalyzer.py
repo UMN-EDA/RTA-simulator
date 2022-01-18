@@ -34,6 +34,7 @@ from Visualizer import Visualizer
 from ThermalSolver import ThermalSolver 
 from pathlib import Path
 from matplotlib import pyplot as plt
+from time import time
 
 class ThermalAnalyzer:
   def __init__(self):
@@ -293,5 +294,12 @@ class ThermalAnalyzer:
     self.args = args
 
 if __name__ == "__main__":
+  st = time()
   therm_anlyzr = ThermalAnalyzer()
   therm_anlyzr.run()
+  et =  time()
+  t = et-st
+  h = t//3600
+  m = (t%3600)//60
+  s = t%60
+  print("TOTAL RUN TIME: %02d:%02d:%05.3f"%(h,m,s))

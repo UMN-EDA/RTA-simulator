@@ -51,9 +51,9 @@ class GDSLoader():
     self.r_sd = solver_params['r_sd'] 
     self.r_ti = solver_params['r_ti'] 
     self.r_gate = solver_params['r_gate'] 
-    self.thickness =solver_params['thickness'] 
     self.dz = np.array(solver_params['dz'])
-    self.die_size = solver_params['die_size']
+    self.die_depth = solver_params['die_depth'] 
+    self.emm_discretization_thresh = solver_params['emm_discretization_thresh']
 
   def createLogger(self):
     self.logger = logging.getLogger('TAZ.GDS')

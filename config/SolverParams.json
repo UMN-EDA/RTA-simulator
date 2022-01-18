@@ -1,7 +1,10 @@
 {
-  "thickness": 500e-6,
+  "__dz_comment": "dz describes the discretization in the z dimension into the substrate",
   "dz": [100e-9,100e-9,100e-9,100e-9,600e-9,99e-6,100e-6,300e-6],
-  "die_size": 4,
+  "__die_depth_comment": "Die Depth indicates how many layers of dz belong to the die",
+  "die_depth": 4,
+  "__discretization_comment": "Emmissivity threshold below which adjacent nodes may be merged",
+  "emm_discretization_thresh": 5e-3,
   "temp_lamp_on": 3000,
   "temp_lamp_off": 298,
   "__density_comment": "Si density in kg/m3",
