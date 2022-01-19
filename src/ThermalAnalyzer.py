@@ -98,6 +98,8 @@ class ThermalAnalyzer:
     self.logger.debug("t_max %e"%self.args.t_max)
     self.logger.debug("t_step %e"%self.args.t_step)
     self.logger.debug("pw_lamp %e"%self.args.pw_lamp)
+    self.logger.debug("tr_lamp %e"%self.args.tr_lamp)
+    self.logger.debug("tf_lamp %e"%self.args.tf_lamp)
     if self.args.solverParams.is_file():
       self.logger.info("Reading definition file %s"%self.args.solverParams)
       self.simulator.defineParameters(self.args.solverParams)
@@ -105,6 +107,15 @@ class ThermalAnalyzer:
       self.logger.error('''Solver Params file %s does not exist. Please define
       it to run the simulator'''%self.args.solverParams)
       return
+    if self.args.tr_lamp > self.args.pw_lamp:
+      self.logger.error('''Lamp rise time cannot be larger than the pulse width.
+      The pulse width time includes the lamp rise time.''')
+      return
+    if self.args.tr_lamp < 0 or self.args.tf_lamp <0:
+      self.logger.error('''Lamp rise time and fall time must be positive 
+      numbers.''')
+      return
+
     if self.args.npzFile is not None:
       self.simulator.build(self.args.npzFile, self.args.R, self.args.outDir, 
                            self.args.halfMode, self.args.discretization)  
@@ -112,7 +123,8 @@ class ThermalAnalyzer:
       self.simulator.buildTest(self.args.test, self.args.R, self.args.outDir,
                                self.args.discretization)  
     self.simulator.enableKsiScaling(self.args.ksiScaling)
-    self.simulator.runSolver(self.args.t_max, self.args.t_step, self.args.pw_lamp)
+    self.simulator.runSolver(self.args.t_max, self.args.t_step, self.args.pw_lamp,
+                             self.args.tr_lamp, self.args.tf_lamp)
       
   def modeJsonPreprocess(self):
     self.logger.critical("Reading from JSON is not yet implmented.")
@@ -212,6 +224,12 @@ class ThermalAnalyzer:
                               help = ''' Time step resolution for the simulation''')
     parserSim.add_argument("-tp","--time_pulse", type=float, dest='pw_lamp', required=True,
                               help = ''' Time duration of the lamp pulse for the simulation''')
+    parserSim.add_argument("-trl","--time_rise_lamp", type=float, dest='tr_lamp', default=0.0,
+                              help = ''' Time for the lamp to switch on and rise to the
+                              maximum temperature''')
+    parserSim.add_argument("-tfl","--time_fall_lamp", type=float, dest='tf_lamp', default=0.0,
+                              help = ''' Time for the lamp to switch off and
+                              fall to the ambient maximum temperature''')
     parserSim.add_argument("-o",'--outDir', type=Path, dest='outDir',
                               help = ''' Destination directory for output
                               solution files. The command will create the directory

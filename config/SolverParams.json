@@ -5,6 +5,7 @@
   "die_depth": 4,
   "__discretization_comment": "Emmissivity threshold below which adjacent nodes may be merged",
   "emm_discretization_thresh": 5e-3,
+  "__lamp_temp_comment": "Lamp on and off temperatures",
   "temp_lamp_on": 3000,
   "temp_lamp_off": 298,
   "__density_comment": "Si density in kg/m3",

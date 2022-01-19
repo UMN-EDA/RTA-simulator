@@ -74,8 +74,9 @@ class Visualizer():
   def visualizeLvW(self,t_point=None):
     if t_point is None:
       t_point = self.t_lamp
+    nt,nx,ny,nz = self.temp.shape
     t_step = self.t_eval[1] - self.t_eval[0]
-    t_plot_point = int(t_point/t_step) 
+    t_plot_point = min(int(t_point/t_step),nt-1)
     T_lw_plot = self.temp[t_plot_point,:,:,0].squeeze()
     len_plot = int(100* self.length/self.width)
     y_ticks = (
@@ -102,7 +103,7 @@ class Visualizer():
       t_point = self.t_lamp
     nt,nx,ny,nz = self.temp.shape
     t_step = self.t_eval[1] - self.t_eval[0]
-    t_plot_point = int(t_point/t_step) 
+    t_plot_point = min(int(t_point/t_step),nt-1)
     T_height_plot =self.temp[t_plot_point,int(nx//2),:,:].squeeze()
 
     len_plot = int(200)
@@ -162,7 +163,8 @@ class Visualizer():
     ax.set_xticklabels(x_ticks[1])
     ax.set_ylabel(y_axis)
     ax.set_xlabel(x_axis)
-    ax.set_title(title)
+    ax.set_title(title, pad=20)
     fig.colorbar(im)
+    fig.set_size_inches(len_plot*0.09,width_plot*0.09) # convert to inches, 100->4 inches
     if self.outDir is not None:
-      fig.savefig(self.outDir / save_name, bbox_inches='tight')
+      fig.savefig(self.outDir / save_name, bbox_inches='tight',dpi=100)

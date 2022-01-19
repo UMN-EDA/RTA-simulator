@@ -96,9 +96,11 @@ class ThermalSolver:
     self.length = self.gds.e.shape[1]*self.region_size*1e-6
     self.grid.createNodes(self.gds, enableDiscretization)                                
     
-  def runSolver(self, t_max, time_step, pw_lamp):
+  def runSolver(self, t_max, time_step, pw_lamp, tr_lamp, tf_lamp):
     self.t_lamp = pw_lamp
-    self.t_step = time_step  # 0.1
+    self.tr_lamp = tr_lamp
+    self.tf_lamp = tf_lamp
+    self.t_step = time_step  
     self.t_eval = np.arange(0,t_max,time_step)
     T_init = self.T_bound*np.ones((self.grid.num_nodes,))
     t1 = time()
@@ -239,15 +241,24 @@ class ThermalSolver:
     return fxn
     
   def lampThermalProfile(self, t):
-    if t <= self.t_lamp:
+    if t <=self.tr_lamp and self.tr_lamp>0:
+      return (self.temp_lamp_off + ((t/self.tr_lamp)*
+              (self.temp_lamp_on - self.temp_lamp_off)))
+    elif self.tr_lamp <= t <= self.t_lamp:
       return self.temp_lamp_on
+    elif self.t_lamp < t <= (self.t_lamp+self.tf_lamp) and self.tf_lamp>0:
+      return (self.temp_lamp_on - (((t-self.t_lamp)/self.tf_lamp)*
+              (self.temp_lamp_on - self.temp_lamp_off)))
     else:
       return self.temp_lamp_off
+
   def saveData(self):
     if self.outDir is not None:
       np.savez_compressed(self.outDir / "temperature_solution.npz",
           temp   = self.temp,
           t_lamp = self.t_lamp,
+          tr_lamp = self.tr_lamp,
+          tf_lamp = self.tf_lamp,
           width  = self.width,
           length = self.length,
           dz = self.dz,
