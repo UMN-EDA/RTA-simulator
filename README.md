@@ -126,13 +126,15 @@ usage: ThermalAnalyzer simulate [-h] (-g NPZFILE | -t {1,2,3}) -r R -tm T_MAX
 |---------------------------------------|--------------------------------------------------|
 | -h, --help            	              | Show this help message and exit.                 |
 | -g NPZFILE, --preprocessedGDS NPZFILE | Path to the preprocessed NPZ file for simulation. Call multiple times for multiple GDS. |
-| -t {1,2,3}, --testcase {1,2,3}        | Run predefined testcases.                         |
-| -r R, --resolution R                  | FEM element regions size on the surface plot.     |
-| -tm T_MAX, --time_max T_MAX           | Maximum time for the simulation.                  |
-| -ts T_STEP, --time_step T_STEP        | Time step resolution for the simulation.          |
+| -t {1,2,3}, --testcase {1,2,3}        | Run predefined testcases.                          |
+| -r R, --resolution R                  | FEM element regions size on the surface plot.      |
+| -tm T_MAX, --time_max T_MAX           | Maximum time for the simulation.                   |
+| -ts T_STEP, --time_step T_STEP        | Time step resolution for the simulation.           |
 | -tp PW_LAMP, --time_pulse PW_LAMP     | Time duration of the lamp pulse for the simulation.| 
-| -o OUTDIR, --outDir OUTDIR            | Destination directory for output solution files. |
-| -k, --enable_t_k_scaling              | Enable temperature based conductivity scaling. |
+| -trl tr_lamp, --time_rise_lamp TR_LAMP| Time duration of ramp up/rise time of the lamp.    | 
+| -tfl tf_lamp, --time_fall_lamp TF_LAMP| Time duration of ramp down/fall time of the lamp.  | 
+| -o OUTDIR, --outDir OUTDIR            | Destination directory for output solution files.   |
+| -k, --enable_t_k_scaling              | Enable temperature based conductivity scaling.     |
 | -hm, --half_mode                      | When merging multiple GDS chooses to use only half the GDS in width dimension. |
 | -c, --enable_corsening                | Enable coarsening of the emissivity map by merging nodes with similar emissivities. |
 
