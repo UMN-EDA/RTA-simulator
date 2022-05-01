@@ -158,6 +158,7 @@ usage: ThermalAnalyzer visualize [-h] [-e NPZFILE] [-r R] [-o OUTDIR]
 | -lvw, --lenVwidth                     | Plot length vs. width for the provided time point|
 | -lvt, --lenVtime                      | Plot length vs. time along the center of the die |
 | -lvh, --lenVheight                    | Plot length vs. height for the provided time point along the center of the die |
+| -tvt, --tempVtime                     | Plot temperature vs. time for the center point of the design |
 | -s SOLFILE, --solution SOLFILE        | Path to the generated solution file from simulation |
 
 

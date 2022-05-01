@@ -73,12 +73,13 @@ class ThermalAnalyzer:
         return
       self.logger.info("Reading definition file %s"%self.args.solverParams)
       self.visualizer.visualizeEmmissivity(self.args.npzFile, self.args.R, self.args.solverParams)
-    if (self.args.lvt is not False or 
-        self.args.lvh is not False or
-        self.args.lvw is not False ):
+    if (self.args.lvt is True or 
+        self.args.lvh is True or
+        self.args.lvw is True or
+        self.args.tvt is True ):
       if self.args.solFile is None:
         self.parserVisualize.error('''--solution is a required argument with -lvt,
-                                      -lvh, -lvw''')
+                                      -lvh, -lvw, -tvt''')
         return
       if not self.args.solFile.is_file():
        self.logger.error('''Solution file does not exist, please provide a valid
@@ -91,6 +92,8 @@ class ThermalAnalyzer:
         self.visualizer.visualizeLvH(self.args.t_point)
       if self.args.lvt:
         self.visualizer.visualizeLvT()
+      if self.args.tvt:
+        self.visualizer.visualizeTvt()
     plt.show()
 
 
@@ -272,6 +275,9 @@ class ThermalAnalyzer:
     group_temp.add_argument("-lvt","--lenVtime", action="store_true",
                               dest='lvt', help = '''Plot length vs time for the
                               along the center of the design''')
+    group_temp.add_argument("-tvt","--tempVtime", action="store_true",
+                              dest='tvt', help = '''Plot temperature vs time for
+                              the center point of the design''')
     group_temp.add_argument("-lvh","--lenVheight", action="store_true",
                               dest='lvh', help = '''Plot length vs height for the 
                               provided time point along the center of the design''')

@@ -126,6 +126,34 @@ class Visualizer():
                  save_name='LengthVsHeight.png'
                  )
 
+  def visualizeTvt(self):
+    t_step = self.t_eval[1] - self.t_eval[0]
+    t_max = self.t_eval[-1]
+    nt,nx,ny,nz = self.temp.shape
+    temp = self.temp[:,int(nx//2),int(ny//2),0].squeeze()
+    temp_time = np.stack((self.t_eval, temp))
+    max_temp = temp_time.max()
+
+    len_plot = int(100)
+    x_ticks = (
+                [        (t_max*x/100)     for x in range(0,101,20)],
+                ["%3.1f"%(t_max*x*1e3/100) for x in range(0,101,20)]
+              )
+    y_ticks = (
+                [        (max_temp*y/100) for y in range(0,101,20)],
+                ["%3.1f"%(max_temp*y/100) for y in range(0,101,20)]
+              )
+    title="Temperature vs Time plot"
+    self.plot_line(plot_data=temp_time,
+                 x_axis= "Time (ms)",
+                 y_axis= "Temperature (K)",
+                 x_ticks=x_ticks,
+                 y_ticks=y_ticks,
+                 len_plot=len_plot,
+                 title=title,
+                 save_name='TemperatureVsTime.png'
+                 )
+
   def visualizeLvT(self):
     t_step = self.t_eval[1] - self.t_eval[0]
     t_max = self.t_eval[-1]
@@ -151,6 +179,24 @@ class Visualizer():
                  title=title,
                  save_name='LengthVsTime.png'
                  )
+
+  def plot_line(self, plot_data, x_axis, y_axis, x_ticks, y_ticks,
+              title, len_plot,save_name):
+    fig,ax = plt.subplots()
+    width_plot = 100
+    print(plot_data)
+    print(x_ticks)
+    im = ax.plot(plot_data[0], plot_data[1])
+    ax.set_yticks(y_ticks[0])
+    ax.set_yticklabels(y_ticks[1])
+    ax.set_xticks(x_ticks[0])
+    ax.set_xticklabels(x_ticks[1])
+    ax.set_ylabel(y_axis)
+    ax.set_xlabel(x_axis)
+    ax.set_title(title, pad=20)
+    fig.set_size_inches(len_plot*0.09,width_plot*0.09) # convert to inches, 100->4 inches
+    if self.outDir is not None:
+      fig.savefig(self.outDir / save_name, bbox_inches='tight',dpi=100)
 
   def plot_im(self, plot_data, x_axis, y_axis, x_ticks, y_ticks,
               title, len_plot,save_name):
