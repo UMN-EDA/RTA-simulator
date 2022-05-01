@@ -82,6 +82,10 @@ class PreprocessGDS():
     designs = {}
     for design in tqdm(layout['bgnstr']):
       design_name = design['strname']
+      if( ('elements' not in design) or
+          len(design['elements']) <=0):
+        self.logger.warning("Skipping design %s as it does not contain any elements."%design_name)
+        continue
       designs[design_name] = {}
       designs[design_name]['layers'] = {}
       designs[design_name]['instances']= []
@@ -144,6 +148,9 @@ class PreprocessGDS():
         integrate_map = np.zeros_like(layer_map)
         for instance in tqdm(design['instances'], position=1, leave=True):
           inst_name = instance['name']
+          if (inst_name not in designs):
+            self.logger.warning("Skipping instance %s as it was not preprocessed."%inst_name)
+            continue
           inst_map = designs[inst_name]['layer_map']
           inst_map = np.tile(inst_map,(instance['col'],instance['row']))
           (minx,maxx,miny,maxy) = designs[design_name]['limits'] 

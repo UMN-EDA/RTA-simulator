@@ -52,12 +52,6 @@ class Visualizer():
     self.logger.info("Average emissivity: %5.3f"% np.mean(gds.e))
     plt.colorbar()
     self.logger.log(25,"Created emissivity map in %5.2fs"%(time()-st))
-    #plt.figure()
-    #plt.imshow(conductivity_array_sio2.T, cmap='jet')
-    #plt.colorbar()
-    #plt.figure()
-    #plt.imshow(conductivity_array_si.T, cmap='jet')
-    #plt.colorbar()
 
   def loadSolutionFile(self,solFile, outDir):
     solution = np.load(solFile)
