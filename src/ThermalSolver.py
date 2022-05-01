@@ -131,7 +131,7 @@ class ThermalSolver:
     self.temp = temp_map
 
     self.logger.info("Completed solution in %5.2fs"%(time()-t1))
-    self.logger.info("Maximum temperature reported %5.2fs"%(np.max(self.temp)))
+    self.logger.info("Maximum temperature reported: %5.2fK"%(np.max(self.temp)))
     self.pbar.close()
     self.saveData()
 

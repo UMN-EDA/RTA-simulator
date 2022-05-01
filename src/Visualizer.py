@@ -80,12 +80,12 @@ class Visualizer():
     T_lw_plot = self.temp[t_plot_point,:,:,0].squeeze()
     len_plot = int(100* self.length/self.width)
     y_ticks = (
-                [y for y in range(0,int(len_plot+1),int(0.2*len_plot))],
-                [int(self.length*y*1e6/100) for y in range(0,101,20)],
+                [y for y in np.arange(0,len_plot+1,0.2*len_plot)],
+                [int(self.length*y*1e6/100) for y in np.arange(0,101,20)],
               )
     x_ticks = (
-                [x for x in range(0,int(101),int(20))],
-                [int(self.width*x*1e6/100) for x in range(0,101,20)],
+                [x for x in np.arange(0,101,20)],
+                [int(self.width*x*1e6/100) for x in np.arange(0,101,20)],
               )
     title="Length vs Width plot at %5.2es"%t_point
     self.plot_im(plot_data=T_lw_plot.T,
@@ -108,12 +108,12 @@ class Visualizer():
 
     len_plot = int(200)
     y_ticks = (
-                [y for y in range(0,int(len_plot+1),int(0.2*len_plot))],
-                [int(self.length*y*1e6/100) for y in range(0,101,20)],
+                [y for y in np.arange(0,len_plot+1,0.2*len_plot)],
+                [int(self.length*y*1e6/100) for y in np.arange(0,101,20)],
               )
     x_ticks = (
-                [x for x in range(0,int(101),int(100/len(self.dz)))],
-                ["%2.1f"%(np.sum(self.dz[:z])*1e6) for z in range(len(self.dz)+1)],
+                [x for x in np.arange(0,101,100/len(self.dz))],
+                ["%2.1f"%(np.sum(self.dz[:z])*1e6) for z in np.arange(len(self.dz)+1)],
               )
     title="Length vs Height plot at %5.2es"%t_point
     self.plot_im(plot_data=T_height_plot,
@@ -136,12 +136,12 @@ class Visualizer():
 
     len_plot = int(100)
     x_ticks = (
-                [        (t_max*x/100)     for x in range(0,101,20)],
-                ["%3.1f"%(t_max*x*1e3/100) for x in range(0,101,20)]
+                [        (t_max*x/100)     for x in np.arange(0,101,20)],
+                ["%3.1f"%(t_max*x*1e3/100) for x in np.arange(0,101,20)]
               )
     y_ticks = (
-                [        (max_temp*y/100) for y in range(0,101,20)],
-                ["%3.1f"%(max_temp*y/100) for y in range(0,101,20)]
+                [        (max_temp*y/100) for y in np.arange(0,101,20)],
+                ["%3.1f"%(max_temp*y/100) for y in np.arange(0,101,20)]
               )
     title="Temperature vs Time plot"
     self.plot_line(plot_data=temp_time,
@@ -160,14 +160,14 @@ class Visualizer():
     nt,nx,ny,nz = self.temp.shape
     temp_length = self.temp[:,int(nx//2),:,0].squeeze()
 
-    len_plot = int(50)
+    len_plot = 50
     y_ticks = (
-                [y for y in range(0,int(len_plot+1),int(0.2*len_plot))],
-                [int(self.length*y*1e6/100) for y in range(0,101,20)],
+                [y for y in np.arange(0,len_plot+1,0.2*len_plot)],
+                [int(self.length*y*1e6/100) for y in np.arange(0,101,20)],
               )
     x_ticks = (
-                [x for x in range(0,int(101),int(20))],
-                ["%3.1f"%(t_max*x*1e3/100) for x in range(0,101,20)],
+                [x for x in np.arange(0,101,20)],
+                ["%3.1f"%(t_max*x*1e3/100) for x in np.arange(0,101,20)],
               )
     title="Length vs Time plot"
     self.plot_im(plot_data=temp_length.T,
@@ -184,8 +184,6 @@ class Visualizer():
               title, len_plot,save_name):
     fig,ax = plt.subplots()
     width_plot = 100
-    print(plot_data)
-    print(x_ticks)
     im = ax.plot(plot_data[0], plot_data[1])
     ax.set_yticks(y_ticks[0])
     ax.set_yticklabels(y_ticks[1])
