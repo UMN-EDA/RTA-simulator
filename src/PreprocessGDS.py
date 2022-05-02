@@ -61,6 +61,14 @@ class PreprocessGDS():
     with JsonFile.open('r') as f:
       self.GdsJson = json.load(f)
 
+  def defineParameters(self, solverParamsFile):
+    self.solverParamsFile = solverParamsFile
+    with solverParamsFile.open('r') as f:
+      solver_params = json.load(f)
+    self.layer_types = solver_params['layer_types']
+    self.layer_mapping = solver_params['layer_mapping']
+
+
   def createNpzFromGDS(self, GdsFile, outDir):
     self.generateJson(GdsFile)
     self.generateNpz(outDir)
@@ -134,10 +142,12 @@ class PreprocessGDS():
                              - np.array([minx,minx,miny,miny]))
           layer_map[l_name][x1:x2+1,y1:y2+1] = 1
     
-      full_map = np.zeros((maxx-minx,maxy-miny),dtype='byte')
-      for l in [(2011,1),(2012,1), (2310,2), (2344,2)]:
-        if l[0] in layer_map:
-          full_map[layer_map[l[0]] == 1] = l[1]
+      full_map = (np.ones((maxx-minx,maxy-miny),dtype='byte')
+                 )* self.layer_types['default']
+      for l in self.layer_mapping:
+        if int(l) in layer_map:
+          full_map[layer_map[int(l)] == 1] = self.layer_mapping[l]
+
       designs[design_name]['layer_map'] = full_map
       designs[design_name]['limits'] = (minx,maxx,miny,maxy)
     
@@ -196,12 +206,10 @@ class PreprocessGDS():
   def convert_GDS_GDSjson (self):
     level = 0
 
-    #ofile = open (oname, 'wt')
 
     top = {}
     cursors = [top, {}, {}, {}, {}, {}, {}]
 
-    #with open(self.GdsFile, 'rb') as a_file:
     with self.GdsFile.open('rb') as a_file:
       for rec in tqdm(Record.iterate(a_file)):
         tag_name = rec.tag_name
@@ -230,5 +238,4 @@ class PreprocessGDS():
           if isinstance(cursors[level - 1], dict): level = level - 1
           level = level - 1
 
-    #json.dump (top, ofile, indent=4)
     return top

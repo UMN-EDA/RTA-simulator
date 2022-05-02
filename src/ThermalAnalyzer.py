@@ -46,7 +46,6 @@ class ThermalAnalyzer:
     self.parseInputArguments()
     if self.args.AnalysisMode== 'preprocessGDS':
       self.PreprocessGdsOptions()
-        
     elif self.args.AnalysisMode== 'simulate':
       self.SimulateOptions()
     elif self.args.AnalysisMode== 'visualize':
@@ -139,6 +138,13 @@ class ThermalAnalyzer:
   def modeGdsPreprocess(self):
     outDir = self.args.outDir
     gdsFile = self.args.gdsFile
+    if self.args.solverParams.is_file():
+      self.logger.info("Reading definition file %s"%self.args.solverParams)
+      self.preprocessGds.defineParameters(self.args.solverParams)
+    else:
+      self.logger.error('''Solver Params file %s does not exist. Please define
+      it to run the GDS preprocessing'''%self.args.solverParams)
+      return
     self.preprocessGds.createNpzFromGDS( gdsFile, outDir)
 
     

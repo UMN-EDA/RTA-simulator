@@ -48,12 +48,11 @@ class GDSLoader():
       solver_params = json.load(f)
     self.si_k = solver_params['si_k'] 
     self.sio2_k = solver_params['sio2_k'] 
-    self.r_sd = solver_params['r_sd'] 
-    self.r_ti = solver_params['r_ti'] 
-    self.r_gate = solver_params['r_gate'] 
     self.dz = np.array(solver_params['dz'])
     self.die_depth = solver_params['die_depth'] 
     self.emm_discretization_thresh = solver_params['emm_discretization_thresh']
+    self.layer_types = solver_params['layer_types']
+    self.layer_mapping = solver_params['layer_mapping']
 
   def createLogger(self):
     self.logger = logging.getLogger('TAZ.GDS')
@@ -78,21 +77,26 @@ class GDSLoader():
     conductivity_array_sio2 = np.zeros((nx,ny))
     conductivity_array_si = np.zeros((nx,ny))
     num_el = (RTA_array.shape[0]*RTA_array.shape[1])/(region_size*region_size)
-    ##
     self.logger.debug("Creating emissivity and conductivity maps")
     for x in range(nx):
       cx = region_size*x
       for y in range(ny):
         cy = region_size*y
         region = RTA_array[cx:cx+region_size,cy:cy+region_size]
-        emissivity_array[x,y] = (  np.sum(region==0)*(1-self.r_ti) 
-                                 + np.sum(region==1)*(1-self.r_sd)
-                                 + np.sum(region==2)*(1-self.r_gate)
-                                 )/(region_size**2)
-        conductivity_array_sio2[x,y] =( np.sum(region==0)* self.sio2_k)/(region_size**2)
-        conductivity_array_si[x,y] =( np.sum(region==1)*self.si_k
-                                    + np.sum(region==2)*self.si_k
-                                    )/(region_size**2)
+        for l_type, layer in self.layer_types.items():
+          if l_type == "default":
+            continue
+          l = int(l_type)
+          r = layer['r'] 
+          m = layer['m'] # material 0  = si02; 1 = Si
+          
+          layer_density = np.sum(region==l)/(region_size**2)
+          emissivity_array[x,y] += layer_density * (1-r)
+          if m == 0:
+            conductivity_array_sio2[x,y] += layer_density * self.sio2_k
+          else:
+            conductivity_array_si[x,y] += layer_density * self.si_k
+
 
     self.logger.debug("Aggregating info complete")
     self.e = emissivity_array

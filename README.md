@@ -89,7 +89,9 @@ usage: ThermalAnalyzer [-h] [-v | -q | -d] [-l LOG] [-p SOLVERPARAMS]
 |  -q, --quiet            | No information, warning messages displayed.          |
 | -d, --debug             | Displays additional debug messages for software debug.|
 | -l LOG, --log_file LOG  | Log file for run.                   	                  |
-| -p SOLVERPARAMS,        | JSON file containing necessary definition to run the tool. By default loads RTA-simulator/config/SolverParams.json |
+| -p SOLVERPARAMS,        | JSON file containing necessary definition to run the tool. By default loads RTA-simulator/config/SolverParams.json. Refer RTA-simulator/config/README.md for more details |
+
+
 
 This software runs in three different modes of operation as summarized below:
 
@@ -101,6 +103,8 @@ For additional information of each mode run `python3 src/ThermalAnalyzer.py <mod
 
 #### PreprocessGDS mode
 The preprocessGDS mode is to read a GDS file and generate a parsed emissivity matrix that is stored in the .npz file.
+Please modify SolverParams with the layers of the GDS. The layers must be
+defined and mapped to RTA_simulator layers. Refer config/README for details. 
 
 ```
 Usage: ThermalAnalyzer preprocessGDS [-h] (-j JSONFILE | -g GDSFILE) -o OUTDIR

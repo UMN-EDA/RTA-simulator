@@ -134,7 +134,6 @@ class node():
   def conductivity(self, ksiScaling):
     fxn = self.thermalConductivity(self.T,ksiScaling)
     self.k = self.k_sio2 + (fxn/self.si_k) * self.k_si
-    #self.k = self.k_si + self.k_sio2
     return self.k
     
   def print(self):
@@ -159,8 +158,6 @@ class DiscretizeGrid():
 
   def getEmmissivityMap(self,npzFiles,regionSize, solverParamsFile, half_mode):
     st = time()
-    #gds = GDSLoader(regionSize, solverParamsFile)
-    #self.logger.log(25,"Creating emissivity map from GDS NPZ")
     for n, npzFile in enumerate(npzFiles):
       gds_n = GDSLoader(regionSize, solverParamsFile)
       gds_n.createEmmissivityMatrix(npzFile)
@@ -173,7 +170,6 @@ class DiscretizeGrid():
         gds.k_si =  gds_n.k_si[0:dimx, :]
         gds.k_sio2 =  gds_n.k_sio2[0:dimx, :]
       else:
-        #print(gds.e.shape,gds_n.e)
         gds.e = np.vstack((gds.e, gds_n.e[0:dimx, :]))
         gds.k_si = np.vstack((gds.k_si, gds_n.k_si[0:dimx, :]))
         gds.k_sio2 = np.vstack((gds.k_sio2, gds_n.k_sio2[0:dimx, :]))
