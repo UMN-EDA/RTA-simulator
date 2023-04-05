@@ -78,7 +78,7 @@ class GDSLoader():
     conductivity_array_si = np.zeros((nx,ny))
     num_el = (RTA_array.shape[0]*RTA_array.shape[1])/(region_size*region_size)
     self.logger.debug("Creating emissivity and conductivity maps")
-    for x in range(nx):
+    for x in trange(nx, position=0, leave=True):
       cx = region_size*x
       for y in range(ny):
         cy = region_size*y

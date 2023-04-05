@@ -62,7 +62,7 @@ class ThermalAnalyzer:
       self.logger.critical("Undefined state for Prepocessign GDS.")
   
   def VisualizeOptions(self):
-    if self.args.npzFile is not None:
+    if self.args.npzFile is not None or self.args.test is not None:
       if self.args.R is None:
         self.parserVisualize.error("--resolution is a required argument with --emissivity")
         return 
@@ -71,7 +71,13 @@ class ThermalAnalyzer:
         it for creating emissivity maps'''%self.args.solverParams)
         return
       self.logger.info("Reading definition file %s"%self.args.solverParams)
-      self.visualizer.visualizeEmmissivity(self.args.npzFile, self.args.R, self.args.solverParams)
+      if self.args.npzFile is not None:
+        self.visualizer.visualizeEmmissivity(self.args.npzFile, self.args.R, 
+              self.args.solverParams,self.args.discretization)
+      if self.args.test is not None:
+        self.visualizer.visualizeTestEmmissivity(self.args.test, self.args.R, 
+              self.args.solverParams,self.args.discretization)
+
     if (self.args.lvt is True or 
         self.args.lvh is True or
         self.args.lvw is True or
@@ -145,7 +151,18 @@ class ThermalAnalyzer:
       self.logger.error('''Solver Params file %s does not exist. Please define
       it to run the GDS preprocessing'''%self.args.solverParams)
       return
-    self.preprocessGds.createNpzFromGDS( gdsFile, outDir)
+    if self.args.averageFile is not None:
+      if self.args.averageFile.is_dir():
+        self.logger.error('''Average emmissivity file %s, cannot be a 
+                             directory'''%self.args.averageFile)
+        return
+      else:
+        self.args.averageFile.touch(exist_ok=True)
+
+    self.preprocessGds.createNpzFromGDS(gdsFile, outDir, self.args.highRes,
+                                        self.args.averageFile) 
+    if self.args.saveJson is not None:                                        
+      self.preprocessGds.saveGdsJson(self.args.saveJson)
 
     
     
@@ -266,8 +283,17 @@ class ThermalAnalyzer:
     group_emmis.add_argument("-e","--emissivity", type=Path, dest='npzFile',
                               help = '''Path to the preprocessed NPZ file for
                                         emissivty plot''')
-    group_emmis.add_argument("-r","--resolution", type=int, dest='R',
-                              help = '''Resolution in um (int) for emissivity plot''')
+    group_emmis.add_argument("-r","--resolution", type=float, dest='R',
+                              help = '''Resolution in um  for emissivity plot''')
+    group_emmis.add_argument("-c",'--enable_coarsening', action='store_true',
+                              dest='discretization', default=False,
+                              help = ''' Display coasening factor in emissivity
+                              map used for simulation. By default, this is
+                              disabled''')
+    group_emmis.add_argument("-tc","--testcase",type=int,dest='test',
+                            choices=[1,2,3], help =''' Run predefined
+                            testcases''')
+
     parserVisualize.add_argument('-o','--outDir', type=Path, dest='outDir',
               help = '''Destination directory to store the figure. The command
               will create the directory if it does not exists''')
@@ -306,6 +332,19 @@ class ThermalAnalyzer:
               dest='outDir', required=True,
               help = '''Destination directory for output NPZ files. The command
               will create the directory if it does not exists''')
+    parserGdsPreprocess.add_argument("-s","--saveJson",type=Path,
+                              help = '''Destination file for output JSON.''')
+    parserGdsPreprocess.add_argument("-hr","--high_resolution", action="store_true",
+                              dest='highRes', help = '''Processes emmissivity
+                              map in high resolution mode for finner granularity''')
+    parserGdsPreprocess.add_argument("-a","--average_emissivity", type=Path,
+                              dest='averageFile', help = '''File to write out
+                              average emmissivity. It will create the file if it
+                              does not exist.''')
+    #parserGdsPreprocess.add_argument("-lp","--layer_plot", action="store_true",
+    #                          dest='layer_plot', help = '''''')
+
+
     self.parser = parser
     self.parserVisualize = parserVisualize
     self.parserGdsPreprocess = parserGdsPreprocess

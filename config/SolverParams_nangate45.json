@@ -1,0 +1,53 @@
+{
+  "__dz_comment": "dz describes the discretization in the z dimension into the substrate",
+  "dz": [100e-9,100e-9,100e-9,100e-9,600e-9,99e-6,100e-6,300e-6],
+  "__die_depth_comment": "Die Depth indicates how many layers of dz belong to the die",
+  "die_depth": 4,
+  "__discretization_comment": "Emmissivity threshold below which adjacent nodes may be merged",
+  "emm_discretization_thresh": 5e-3,
+  "__lamp_temp_comment": "Lamp on and off temperatures",
+  "temp_lamp_on": 3000,
+  "temp_lamp_off": 298,
+  "__density_comment": "Si density in kg/m3",
+  "density": 2330,
+  "__cp_comment": "Si specific heat in J/ (kg K)   J = m2 kg/s2 ",
+  "cp": 700,
+  "__s_k_comment": "thermal conductivity of Si/SiO2 at room temperature",
+  "si_k": 148,
+  "sio2_k": 1.4,
+  "__sigma_comment": "stefan boltzman constant",
+  "sigma": 5.670374e-8, 
+  "__bound_comment": "boundary conditions temerature, conductivity, distance",
+  "T_bound": 298,
+  "k_bound": 0.1,
+  "dz_bound": 0.5e-3,
+  "__layer_types_comment": "Defintions for the layers defined within the GDS, (names must be integer numbers), r: relection coefficient, m: material for conductivity, 0=sio2_k, 1=si_k",
+  "__Discalimer": "The tool only supports si and sio2 as materials due to the tight integration of temperature dependent conductivity. Accounting for other materials would need a code rewrite.",
+  "layer_types": { 
+    "0": {
+      "Desription": "Trench isolation layer, reflection coefficient and material",
+      "r": 0.2,
+      "m": 0
+    },
+    "1": {
+      "Desription": "Source Drain layer, reflection coefficient and material",
+      "r": 0.57,
+      "m": 1
+    },
+    "2": {
+      "Desription": "Gate layer, reflection coefficient and material",
+      "r": 0.45,
+      "m": 1
+    },
+    "default": 0
+  },
+  "__layer_mapping_comment": "Mapping from GDS layers to tool defined layers above",
+  "layer_mapping": { 
+    "1": 1,
+    "9": 2
+  },
+  "__r_comment": "Reflection coefficient for Source/Drain, trench isolation, gate, used for testcase generation",
+  "r_sd": 0.57,
+  "r_ti": 0.2,
+  "r_gate": 0.45
+}

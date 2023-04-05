@@ -24,7 +24,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 # Author: VidyaChhabria
-
+import math
 import numpy as np
 from gdsii import types
 from gdsii.record import Record
@@ -32,6 +32,7 @@ import json
 from tqdm import tqdm
 from pathlib import Path
 import logging
+from matplotlib import pyplot as plt
 
 class PreprocessGDS():
   def __init__(self):
@@ -69,25 +70,86 @@ class PreprocessGDS():
     self.layer_mapping = solver_params['layer_mapping']
 
 
-  def createNpzFromGDS(self, GdsFile, outDir):
+  def createNpzFromGDS(self, GdsFile, outDir, highRes, averageFile):
     self.generateJson(GdsFile)
-    self.generateNpz(outDir)
+    self.generateNpz(outDir,highRes,averageFile)
   
   def createNpzFromJson(self, JsonFile, outDir):
     self.loadGdsJson(JsonFile)
     self.generateNpz(outDir)
+  
+  def calcAvgEmmissivity(self, design_map, averageFile, design_name):
+    if averageFile is not None:
+      avg_emm = 0
+      for l_type, layer in self.layer_types.items():
+        if l_type == "default":
+          continue
+        l = int(l_type) 
+        r = layer['r'] 
+        avg_emm += (1-r) * np.sum(design_map==l)/design_map.size
+      with averageFile.open("a") as f:
+        f.write("%s, %5.4f\n"%(design_name, avg_emm))
 
-  def generateNpz(self, outDir):
+  def transform(self, inst_map_in, strans, angle, row, col, dx, dy, limits, name):
+    if(col>1):
+      if(dx!=0):
+        inst_map_row = np.tile(inst_map_in[0:dx,:],(col-1,1))
+      else:
+        inst_map_row = np.tile(inst_map_in        ,(col-1,1))
+      inst_map_row = np.concatenate((inst_map_row, inst_map_in),axis=0)
+    else:
+      inst_map_row = inst_map_in
+    if(row>1):
+      if(dy!=0):
+        inst_map = np.tile(inst_map_row[:,0:dy],(1,row-1))
+      else:
+        inst_map = np.tile(inst_map_row        ,(1,row-1))
+      inst_map = np.concatenate((inst_map, inst_map_row),axis=1)
+    else:
+      inst_map = inst_map_row
+
+    w, h = inst_map.shape
+    (minx,maxx,miny,maxy) = limits 
+    maxx = minx+w
+    maxy = miny+h
+    if strans == 32768: #reflection about x axis
+      inst_map = np.flip(inst_map, 1) # flip along y axis
+      miny, maxy= -maxy, -miny
+    elif strans == 0: # do nothing
+      pass
+    else:
+      self.logger.warning("Unknown Strans condition for %s: %x"%(name, strans))
+    if int(angle) == 0:
+      pass
+    elif int(angle) == 90:
+      minx, maxx, miny, maxy = -maxy, -miny, minx, maxx 
+      inst_map = np.rot90(inst_map,-1) # as we are working with x,y
+    elif int(angle) == 180:
+      minx, maxx, miny, maxy = -maxx, -minx, -maxy, -miny 
+      inst_map = np.rot90(inst_map,2)
+    elif int(angle) == 270:
+      minx, maxx, miny, maxy = miny, maxy, -maxx, -minx 
+      inst_map = np.rot90(inst_map,1) # as we are working with x,y
+    else:  
+      self.logger.warning("Unknown angle condition for %s: %x"%(name, angle))
+
+    return inst_map, (minx, maxx, miny, maxy)
+
+  def generateNpz(self, outDir, highRes, averageFile):
     self.logger.log(25,"Generating GDS NPZ.")
     plot = False
     gds = self.GdsJson
     outDir.mkdir(parents=True, exist_ok=True)
-
-    res = 0.1 # 0.1um
+    
+    if highRes:
+      res = 0.001 # 0.1um
+    else:
+      res = 0.1
     layout = gds['bgnlib'][0]
     unit = layout['units'][0]/ res
     
     designs = {}
+    #TODO: sub designs must be defined before they are used. 
     for design in tqdm(layout['bgnstr']):
       design_name = design['strname']
       if( ('elements' not in design) or
@@ -107,25 +169,51 @@ class PreprocessGDS():
           min_y, max_y = np.min(xy[:,1]),np.max(xy[:,1])
           designs[design_name]['layers'][layer].append(
               (min_x, max_x, min_y, max_y))
-        elif element['type'].lower() == 'aref'.lower(): 
+        elif (element['type'].lower() == 'aref'.lower() or
+          element['type'].lower() == 'sref'.lower()): 
           instance = {}
+          inst_name = element['sname']
+          instance['name'] = inst_name
+          instance['strans'] = element.get('strans', 0)
+          instance['angle'] = element.get('angle', 0)
+            
+          if element['type'].lower() == 'aref'.lower():
+            instance['col'] = element['colrow'][0]
+            instance['row'] = element['colrow'][1]
+          else:
+            instance['col'] = 1
+            instance['row'] = 1
+          if instance['name'] not in designs:
+            self.logger.warning("%s not processed before %s. This may lead to map size issues"%(instance['name'],design_name))
+
           xy = np.array(element['xy']).reshape((-1,2))
-          min_x, max_x = int(np.min(xy[:,0])*unit),int(np.max(xy[:,0])*unit) 
-          min_y, max_y = int(np.min(xy[:,1])*unit),int(np.max(xy[:,1])*unit)
-          instance['min_x'] = min_x
-          instance['max_x'] = max_x
-          instance['min_y'] = min_y
-          instance['max_y'] = max_y
-          instance['col'] = element['colrow'][0]
-          instance['row'] = element['colrow'][1]
-          instance['name'] = element['sname']
-    
+          x, y = int(xy[0,0]*unit),int(xy[0,1]*unit)
+          #assuming no stadard 90 rotation or mirroring
+          dx  = math.ceil((max(xy[:,0]) - min(xy[:,0]))*unit/instance['col'])
+          dy  = math.ceil((max(xy[:,1]) - min(xy[:,1]))*unit/instance['row'])
+          instance['dx'], instance['dy']  = dx, dy
+
+          inst_map = designs[inst_name]['layer_map']
+          inst_map, limits = self.transform(inst_map,
+                                    instance['strans'],
+                                    instance['angle'],
+                                    instance['row'],
+                                    instance['col'],
+                                    instance['dx'],
+                                    instance['dy'],
+                                    designs[inst_name]['limits'],
+                                    inst_name)
+          (minx,maxx,miny,maxy) = limits
+          instance['min_x'] = x+limits[0]
+          instance['max_x'] = x+limits[1]
+          instance['min_y'] = y+limits[2]
+          instance['max_y'] = y+limits[3]
           designs[design_name]['instances'].append(instance)      
     
       layer_map= {}    
-      maxx, maxy =0,0
+      maxx, maxy =-float('inf'), -float('inf')
       minx, miny =float('inf'), float('inf')
-      for l_name, layer in designs[design_name]['layers'].items():
+      for  layer in designs[design_name]['layers'].values():
         boundaries = np.array(layer)
         min_x = int(np.min(boundaries[:,0])*unit) 
         max_x = int(np.max(boundaries[:,1])*unit)
@@ -133,6 +221,11 @@ class PreprocessGDS():
         max_y = int(np.max(boundaries[:,3])*unit)
         maxx,maxy = max(maxx,max_x), max(maxy,max_y)
         minx,miny = min(minx,min_x), min(miny,min_y)
+      for inst in designs[design_name]['instances']:
+        maxx = max(maxx,inst['max_x'])
+        maxy = max(maxy,inst['max_y'])
+        minx = min(minx,inst['min_x'])
+        miny = min(miny,inst['min_y'])
         
       for l_name, layer in tqdm(designs[design_name]['layers'].items(),leave=False):
         boundaries = np.array(layer)
@@ -145,7 +238,7 @@ class PreprocessGDS():
       full_map = (np.ones((maxx-minx,maxy-miny),dtype='byte')
                  )* self.layer_types['default']
       for l in self.layer_mapping:
-        if int(l) in layer_map:
+        if int(l) in layer_map and self.layer_mapping[l] != 0:
           full_map[layer_map[int(l)] == 1] = self.layer_mapping[l]
 
       designs[design_name]['layer_map'] = full_map
@@ -161,27 +254,46 @@ class PreprocessGDS():
           if (inst_name not in designs):
             self.logger.warning("Skipping instance %s as it was not preprocessed."%inst_name)
             continue
+          if 'integrated' not in designs[inst_name]:
+            self.logger.error("Block %s was not integrated before it was needed."%inst_name)
+            pass
+          else:
+            pass
+            
           inst_map = designs[inst_name]['layer_map']
-          inst_map = np.tile(inst_map,(instance['col'],instance['row']))
+          inst_map, limits = self.transform(inst_map,
+                                    instance['strans'],
+                                    instance['angle'],
+                                    instance['row'],
+                                    instance['col'],
+                                    instance['dx'],
+                                    instance['dy'],
+                                    designs[inst_name]['limits'],
+                                    inst_name)
           (minx,maxx,miny,maxy) = designs[design_name]['limits'] 
-          w,h = inst_map.shape  
-          llx, lly = instance['min_x'] - minx , instance['min_y'] - miny
-          urx, ury = llx + w, lly +h
-          integrate_map[llx:urx,lly:ury] = inst_map
+          llx = instance['min_x'] - minx
+          urx = instance['max_x'] - minx
+          lly = instance['min_y'] - miny 
+          ury = instance['max_y'] - miny
+          integrate_area = integrate_map[llx:urx,lly:ury]
+          integrate_area[inst_map>0] = inst_map[inst_map>0]
+          integrate_map[llx:urx,lly:ury] = integrate_area
         integrate_map[layer_map>0] = layer_map[layer_map>0]
-    
-        if plot:
-          plt.figure()
-          plt.imshow(integrate_map.T)
-          plt.title('integrated layout map %s'%design_name)
-        np.savez_compressed('%s/%s.npz'%(outDir,design_name),design=integrate_map,resolution=np.array([res])) 
+        design_map = integrate_map
+        design['layer_map'] = integrate_map
+        design['integrated'] = True
       elif len(design['instances']) == 0:
-        if plot:
-          plt.figure()
-          plt.imshow(design['layer_map'].T)
-          plt.title('layout map %s'%design_name)
-        np.savez_compressed('%s/%s.npz'%(outDir,design_name),design=design['layer_map'],resolution=np.array([res])) 
-    
+        design_map = design['layer_map']
+        design['integrated'] = True
+      self.calcAvgEmmissivity(design_map, averageFile, design_name)
+      np.savez_compressed('%s/%s.npz'%(outDir,design_name),design=design_map,resolution=np.array([res])) 
+      if plot:
+        plt.figure()
+        plt.imshow(design_map.T)
+        plt.title('Layout map %s'%design_name)
+        plt.colorbar()
+    if plot:
+      plt.show()
 ####### This is derived from an open source code for gds to json conversion
 #  This helps understand:  http://www.buchanan1.net/stream_description.html
 #  element:  boundary | path | sref | aref | text | node | box

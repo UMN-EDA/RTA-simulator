@@ -31,27 +31,61 @@ import numpy as np
 import logging
 from GDSLoader import GDSLoader
 from time import time
+from ThermalSolver import ThermalSolver
 
 class Visualizer():
   def __init__(self):
     self.createLogger()
+    self.solver = ThermalSolver()
 
   def createLogger(self):
     self.logger = logging.getLogger('TAZ.VIS')
 
-  def visualizeEmmissivity(self,npzFile,regionSize, solverParamsFile):
+  def visualizeEmmissivity(self, npzFile, regionSize, solverParamsFile,
+                           enableDiscretization=False):
     gds = GDSLoader(regionSize, solverParamsFile)
-    st = time()
     self.logger.log(25,"Creating emissivity map from GDS NPZ")
     gds.createEmmissivityMatrix(npzFile)
+    self.plotEmmissivity(gds, regionSize, enableDiscretization)
+    
+  def visualizeTestEmmissivity(self,  patternNum, regionSize, solverParamsFile,
+                           enableDiscretization=False):
+    self.solver.defineParameters(solverParamsFile)                       
+    self.solver.region_size = regionSize
+    self.logger.debug("Enabling pattern %d"%patternNum)
+    patternMask = self.solver.testcasePatterns(patternNum-1)
+    self.solver.setTestcaseParameters(patternMask, regionSize, solverParamsFile)
+    self.plotEmmissivity(self.solver.gds, regionSize, enableDiscretization)
+
+  def plotEmmissivity(self,gds, regionSize, enableDiscretization):
+    st = time()
     plt.figure()
-    plt.imshow(gds.e.T, cmap='jet')
-    plt.title("Emissivity map at %d um resolution"%regionSize)
+    w, h = gds.e.shape
+    plt.imshow(gds.e.T, cmap='jet',extent=[0,w*regionSize,0,h*regionSize])
+    plt.title("Emissivity map at %5.2f um resolution"%regionSize)
     plt.xlabel('Width (um)')
     plt.ylabel('Length (um)')
     self.logger.info("Average emissivity: %5.3f"% np.mean(gds.e))
     plt.colorbar()
     self.logger.log(25,"Created emissivity map in %5.2fs"%(time()-st))
+    if enableDiscretization:
+      self.visualizeCoarsening(regionSize, gds.e,gds.emm_discretization_thresh)
+
+  def visualizeCoarsening(self, regionSize, emmMap, emm_discretization_thresh):
+    grid = self.solver.grid
+    st = time()
+    self.logger.log(25,"Creating emissivity map from GDS NPZ")
+    disMap, max_dis = grid.createDiscretization(emmMap, emm_discretization_thresh)
+    plt.figure()
+    w, h = emmMap.shape
+    plt.imshow(disMap.T, cmap='jet',extent=[0,w*regionSize,0,h*regionSize])
+    plt.title("Emissivity map coarsening factor at %5.2f um resolution"%regionSize)
+    plt.xlabel('Width (um)')
+    plt.ylabel('Length (um)')
+    self.logger.info("Average coarsening: %5.3f"% np.mean(disMap))
+    plt.colorbar()
+    self.logger.log(25,"Created emissivity coarsening map in %5.2fs"%(time()-st))
+
 
   def loadSolutionFile(self,solFile, outDir):
     solution = np.load(solFile)
